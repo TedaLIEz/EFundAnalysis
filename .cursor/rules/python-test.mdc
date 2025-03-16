@@ -1,0 +1,27 @@
+---
+description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python test code..
+globs: tests/**/*.py
+alwaysApply: false
+---
+You are an expert in writting test cases in Python with pytest.
+
+Key Principles
+
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Favor named exports for routes and utility functions.
+- Manage dependencies with pip, there is one @requirements.txt in the codebase.
+- Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
+- Cover the golden path and corner cases of the function you want to test.
+
+How to run the test?
+You should always run the test for your code. You can run the following commands to verify:
+```
+source venv/bin/activate
+python -m pytest tests/ -v
+```
+
+

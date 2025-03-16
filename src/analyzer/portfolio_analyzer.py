@@ -3,7 +3,7 @@ Portfolio analyzer for processing investment Excel files.
 """
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from enum import Enum
 import pandas as pd
 
@@ -38,16 +38,48 @@ class FundPosition:
         return self.shares * self.nav
 
 
+@dataclass
+class Portfolio:
+    """Represents a user's investment portfolio containing multiple fund positions."""
+    positions: List[FundPosition]
+    
+    @property
+    def total_positions(self) -> int:
+        """Get the total number of positions in the portfolio."""
+        return len(self.positions)
+    
+    @property
+    def total_market_value_by_currency(self) -> Dict[str, float]:
+        """Calculate total market value grouped by currency."""
+        values = {}
+        for position in self.positions:
+            values[position.currency] = values.get(position.currency, 0) + position.market_value
+        return values
+    
+    
+    def get_positions_by_currency(self, currency: str) -> List[FundPosition]:
+        """Get all positions in a specific currency."""
+        return [pos for pos in self.positions if pos.currency == currency]
+    
+    def get_position_by_fund_code(self, fund_code: str) -> Optional[FundPosition]:
+        """Get a position by fund code."""
+        for position in self.positions:
+            if position.fund_code == fund_code:
+                return position
+        return None
+
+
 class PortfolioAnalyzer:
     """Analyzes investment portfolio Excel files."""
     
     def __init__(self, file_path: str):
         """Initialize the analyzer with an Excel file path."""
         self.file_path = file_path
-        self.positions: List[FundPosition] = []
+        self.portfolio: Optional[Portfolio] = None
         
     def load_data(self) -> None:
         """Load and process data from the Excel file."""
+        positions: List[FundPosition] = []
         try:
             # Read Excel file starting from row 5 (0-based index 4)
             df = pd.read_excel(
@@ -87,43 +119,31 @@ class PortfolioAnalyzer:
                     currency=currency,
                     dividend_method=DividendMethod(str(row.iloc[6]))
                 )
-                self.positions.append(position)
+                positions.append(position)
+                
+            self.portfolio = Portfolio(positions=positions)
                 
         except Exception as e:
             raise ValueError(f"Error processing Excel file: {str(e)}")
     
     def get_total_market_value(self) -> float:
         """Calculate total market value of all positions."""
-        return sum(position.market_value for position in self.positions)
-    
-    def get_position_by_fund_code(self, fund_code: str) -> Optional[FundPosition]:
-        """Get a position by fund code."""
-        for position in self.positions:
-            if position.fund_code == fund_code:
-                return position
-        return None
-    
-    def get_positions_by_currency(self, currency: str) -> List[FundPosition]:
-        """Get all positions in a specific currency."""
-        return [pos for pos in self.positions if pos.currency == currency]
+        if not self.portfolio:
+            raise ValueError("No portfolio data loaded")
+        return sum(position.market_value for position in self.portfolio.positions)
     
     def get_summary(self) -> dict:
         """Get a summary of the portfolio."""
-        if not self.positions:
-            return {"error": "No positions loaded"}
+        if not self.portfolio:
+            return {"error": "No portfolio data loaded"}
             
-        currencies = set(pos.currency for pos in self.positions)
-        summary = {
-            "total_positions": len(self.positions),
-            "total_value_by_currency": {
-                currency: sum(pos.market_value for pos in self.get_positions_by_currency(currency))
-                for currency in currencies
-            },
+        return {
+            "total_positions": self.portfolio.total_positions,
+            "total_value_by_currency": self.portfolio.total_market_value_by_currency,
             "position_count_by_currency": {
-                currency: len(self.get_positions_by_currency(currency))
-                for currency in currencies
+                currency: len(self.portfolio.get_positions_by_currency(currency))
+                for currency in set(pos.currency for pos in self.portfolio.positions)
             },
-            "latest_nav_date": max(pos.nav_date for pos in self.positions),
-            "earliest_nav_date": min(pos.nav_date for pos in self.positions)
-        }
-        return summary 
+            "latest_nav_date": self.portfolio.latest_nav_date,
+            "earliest_nav_date": self.portfolio.earliest_nav_date
+        } 

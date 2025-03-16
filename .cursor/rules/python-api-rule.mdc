@@ -1,9 +1,9 @@
 ---
 description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
-globs: 
+globs: src/api/*.py
 alwaysApply: false
 ---
-You are an expert in Python, FastAPI, Llamaindex and scalable API development.
+You are an expert in Python, FastAPI and scalable API development.
 
 Key Principles
 
@@ -64,6 +64,17 @@ Performance Optimization
 - Implement caching for static and frequently accessed data using tools like Redis or in-memory stores.
 - Optimize data serialization and deserialization with Pydantic.
 - Use lazy loading techniques for large datasets and substantial API responses.
+
+How to run the test?
+
+You should always run the test for your code. You can run the following commands to verify:
+```
+source venv/bin/activate
+python -m pytest tests/ -v
+```
+
+You should fix your code if you found your code fail the test cases.
+
 
 Key Conventions
 
