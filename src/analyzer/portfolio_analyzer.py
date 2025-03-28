@@ -56,6 +56,21 @@ class Portfolio:
             values[position.currency] = values.get(position.currency, 0) + position.market_value
         return values
     
+    @property
+    def total_market_value(self) -> float:
+        """Calculate total market value across all positions."""
+        return sum(position.market_value for position in self.positions)
+    
+    @property
+    def position_percentages(self) -> Dict[str, float]:
+        """Calculate the percentage of each position relative to total portfolio value."""
+        total_value = self.total_market_value
+        if total_value == 0:
+            return {}
+        return {
+            f"{pos.fund_code} ({pos.fund_name})": (pos.market_value / total_value) * 100
+            for pos in self.positions
+        }
     
     def get_positions_by_currency(self, currency: str) -> List[FundPosition]:
         """Get all positions in a specific currency."""
@@ -143,7 +158,5 @@ class PortfolioAnalyzer:
             "position_count_by_currency": {
                 currency: len(self.portfolio.get_positions_by_currency(currency))
                 for currency in set(pos.currency for pos in self.portfolio.positions)
-            },
-            "latest_nav_date": self.portfolio.latest_nav_date,
-            "earliest_nav_date": self.portfolio.earliest_nav_date
+            }
         } 
