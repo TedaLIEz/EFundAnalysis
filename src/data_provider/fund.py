@@ -71,7 +71,7 @@ def get_fund_individual_detail_info(fund_code: str) -> Optional[pd.DataFrame]:
         Optional[pd.DataFrame]: A DataFrame containing fund transaction rules with the following columns:
             - 费用类型: Fee type (object)
             - 条件或名称: Condition or name (object)
-            - 费用: Fee amount (float64)
+            - 费用率: Fee rate in percentage(float64)
             
         Returns None if:
             - The fund code is not found
@@ -96,5 +96,57 @@ def get_fund_individual_detail_info(fund_code: str) -> Optional[pd.DataFrame]:
         print(f"Error fetching fund transaction rules for {fund_code}: {str(e)}")
         return None
 
+
+def get_fund_performance(fund_code: str, timeout: Optional[float] = None) -> Optional[pd.DataFrame]:
+    """
+    Get fund performance data using akshare's API.
+    
+    Args:
+        fund_code (str): A six-digit fund code, e.g., "000001"
+        timeout (Optional[float]): Request timeout in seconds. Defaults to None.
+        
+    Returns:
+        Optional[pd.DataFrame]: A DataFrame containing fund performance data with the following columns:
+            - 业绩类型: Performance type (object) - '年度业绩' for annual or '阶段业绩' for periodic
+            - 周期: Period (object) - e.g., '近1月', '近3月', '2023', '成立以来', etc.
+            - 本产品区间收益: Product interval return (float64) - in percentage
+            - 本产品最大回撒: Maximum drawdown (float64) - in percentage
+            - 周期收益同类排名: Period return ranking among peers (object) - e.g., '128/7671'
+            
+        Returns None if:
+            - The fund code is not found
+            - The API request fails
+            - The returned data is empty
+            
+    Example:
+        >>> perf = get_fund_performance("000001")
+        >>> if perf is not None:
+        ...     # Get annual performance
+        ...     annual_perf = perf[perf['业绩类型'] == '年度业绩']
+        ...     print(annual_perf)
+        ...     # Get periodic performance
+        ...     period_perf = perf[perf['业绩类型'] == '阶段业绩']
+        ...     print(period_perf)
+    """
+    try:
+        # Get fund performance data from akshare
+        df = ak.fund_individual_achievement_xq(symbol=fund_code, timeout=timeout)
+        
+        if df.empty:
+            return None
+            
+        return df
+    except Exception as e:
+        print(f"Error fetching fund performance for {fund_code}: {str(e)}")
+        return None
+
 if __name__ == "__main__":
-    print(get_fund_individual_detail_info("000001"))
+    # print(get_fund_individual_detail_info("000001"))
+    # Test the new function
+    print("\nTesting fund performance:")
+    perf = get_fund_performance("000001")
+    if perf is not None:
+        print("\nAnnual Performance:")
+        print(perf[perf['业绩类型'] == '年度业绩'].head())
+        print("\nPeriodic Performance:")
+        print(perf[perf['业绩类型'] == '阶段业绩'])
