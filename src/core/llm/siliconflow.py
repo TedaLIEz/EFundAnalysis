@@ -20,7 +20,7 @@ def create_llm() -> FunctionCallingLLM:
     endpoint = os.getenv("ENDPOINT")
     api_key = os.getenv("API_KEY")
     model = os.getenv("LLM_MODEL")
-    
+    max_tokens = os.getenv("MAX_TOKENS")
     if not all([endpoint, api_key, model]):
         raise ValueError("Missing required environment variables: ENDPOINT, API_KEY, or LLM_MODEL")
     
@@ -29,4 +29,5 @@ def create_llm() -> FunctionCallingLLM:
         api_key=api_key,
         model=model,
         temperature=0,
+        max_tokens=max_tokens
     ) 

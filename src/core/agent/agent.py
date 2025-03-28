@@ -8,6 +8,8 @@ from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.agent import ReActAgent
 from llama_index.core.tools import FunctionTool
 from core.llm import create_llm
+from llama_index.core.tools import ToolOutput
+from llama_index.core.callbacks import CallbackManager
 
 class FunctionDescription(BaseModel):
     """Description of a function that can be called by the agent."""
@@ -73,9 +75,14 @@ class Agent:
         """
         if not self.agent:
             raise ValueError("No functions have been added to the agent yet")
-            
-        response = self.agent.chat(prompt)
-        return str(response)
+        
+        try:
+            response = self.agent.chat(prompt)
+            return str(response)
+        except ValueError as e:
+            if "Reached max iterations" in str(e):
+                return "I apologize, but I don't have enough information to answer this question accurately. Could you please try rephrasing your question or providing more details?"
+            raise e  # Re-raise other ValueErrors
 
     def get_registered_functions(self) -> List[FunctionDescription]:
         """Get descriptions of all registered functions."""
