@@ -60,5 +60,41 @@ def get_fund_info(fund_code: str) -> Optional[Dict[str, Any]]:
         return None 
 
 
+def get_fund_individual_detail_info(fund_code: str) -> Optional[pd.DataFrame]:
+    """
+    Get fund transaction rules and fee information by its code using akshare's API.
+    
+    Args:
+        fund_code (str): A six-digit fund code, e.g., "000001"
+        
+    Returns:
+        Optional[pd.DataFrame]: A DataFrame containing fund transaction rules with the following columns:
+            - 费用类型: Fee type (object)
+            - 条件或名称: Condition or name (object)
+            - 费用: Fee amount (float64)
+            
+        Returns None if:
+            - The fund code is not found
+            - The API request fails
+            - The returned data is empty
+            
+    Example:
+        >>> rules = get_fund_individual_detail_info("000001")
+        >>> if rules is not None:
+        ...     print(rules[rules['费用类型'] == '买入规则'])  # Show purchase rules
+        ...     print(rules[rules['费用类型'] == '卖出规则'])  # Show redemption rules
+    """
+    try:
+        # Get fund transaction rules from akshare
+        df = ak.fund_individual_detail_info_xq(symbol=fund_code)
+        
+        if df.empty:
+            return None
+            
+        return df
+    except Exception as e:
+        print(f"Error fetching fund transaction rules for {fund_code}: {str(e)}")
+        return None
+
 if __name__ == "__main__":
-    print(get_fund_info("000001"))
+    print(get_fund_individual_detail_info("000001"))
