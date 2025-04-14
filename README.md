@@ -36,8 +36,27 @@ pip freeze > requirements.txt
 
 ```
 .
-├── README.md
-├── requirements.txt
-└── src/
-    └── main.py
+├── README.md               # Project documentation
+├── requirements.txt        # Python dependencies
+├── .gitignore            # Git ignore rules
+├── data/                 # Directory for storing data files
+├── tests/                # Test files and test resources
+└── src/                  # Source code directory
+    ├── __init__.py      # Makes src a Python package
+    ├── main.py          # Main application entry point
+    ├── analyzer/        # Analysis modules and algorithms
+    ├── core/            # Core functionality and utilities
+    └── data_provider/   # Data acquisition and processing modules
+```
+
+## Environment Variables
+
+The project uses a `.env` file for configuration. Make sure to set up your environment variables properly before running the application.
+
+## Testing
+
+The project includes a test suite in the `tests/` directory. To run the tests:
+
+```bash
+pytest
 ``` 

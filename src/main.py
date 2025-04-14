@@ -19,7 +19,7 @@ def main():
     agent.add_function(get_fund_performance)
     agent.add_function(get_date)
     # Run the agent with a prompt
-    prompt = "000001基金过去三年的业绩如何？"
+    prompt = "000001基金的基金经理是谁？000001过去三年的业绩如何"
     response = agent.run(prompt)
     print(f"Response: {response}")
 
