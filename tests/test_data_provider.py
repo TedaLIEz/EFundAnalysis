@@ -5,7 +5,7 @@ import pytest
 from unittest.mock import patch
 import pandas as pd
 
-from src.data_provider import get_fund_info
+from data_provider import get_fund_info
 
 
 @pytest.fixture

@@ -15,8 +15,8 @@ Key Principles
 - Favor named exports for routes and utility functions.
 - Use the Receive an Object, Return an Object (RORO) pattern.
 - Manage runtime within python virtual envrionment, this has been already included in the @venv folder.
-- Manage dependencies with pip, there is one [requirements.txt](mdc:requirements.txt) in the codebase.
-- Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
+- Manage dependencies with uv, there is one [pyproject.toml](mdc:pyproject.toml) in the codebase.
+- Always run the command with uv.
 
 Python/FastAPI
 

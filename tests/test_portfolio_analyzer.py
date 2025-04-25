@@ -4,7 +4,7 @@ Unit tests for the PortfolioAnalyzer class.
 import pytest
 from datetime import datetime
 from pathlib import Path
-from src.analyzer.portfolio_analyzer import PortfolioAnalyzer, DividendMethod, Portfolio, FundPosition
+from analyzer.portfolio_analyzer import PortfolioAnalyzer, DividendMethod, Portfolio, FundPosition
 
 
 @pytest.fixture
