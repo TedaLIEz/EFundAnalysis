@@ -35,7 +35,7 @@ Error Handling and Validation
   - Use guard clauses to handle preconditions and invalid states early.
   - Implement proper error logging and user-friendly error messages.
   - Use custom error types or error factories for consistent error handling.
-  - 
+  -
 
 Dependencies
 
@@ -43,4 +43,3 @@ Dependencies
 - Llamaindex 0.12.24
 
 Refer to Llamaindex documentation for Agents, RAG, Embeddings, Memory, Query Engines and Multi-Model for best practices.
-

@@ -1,3 +1,1 @@
-"""
-Portfolio analyzer package.
-""" 
+"""Portfolio analyzer package."""

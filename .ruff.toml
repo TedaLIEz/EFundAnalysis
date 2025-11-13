@@ -1,0 +1,117 @@
+line-length = 120
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[lint]
+preview = false
+select = [
+    # Pyflakes (F) - catch common errors
+    "F",
+    # Pycodestyle (E, W) - PEP 8 style guide
+    "E",
+    "W",
+    # isort (I) - import sorting
+    "I",
+    # pep8-naming (N) - naming conventions
+    "N",
+    # pydocstyle (D) - docstring conventions
+    "D",
+    # pyupgrade (UP) - upgrade syntax for newer Python versions
+    "UP",
+    # flake8-bugbear (B) - find bugs and design problems
+    "B",
+    # flake8-comprehensions (C4) - better comprehensions
+    "C4",
+    # flake8-pie (PIE) - remove code smells
+    "PIE",
+    # flake8-return (RET) - return statement best practices
+    "RET",
+    # flake8-simplify (SIM) - simplify code
+    "SIM",
+    # flake8-unused-arguments (ARG) - unused arguments
+    "ARG",
+    # flake8-use-pathlib (PTH) - use pathlib
+    "PTH",
+    # eradicate (ERA) - commented-out code
+    "ERA",
+    # pandas-vet (PD) - pandas best practices
+    "PD",
+    # pygrep-hooks (PGH) - additional checks
+    "PGH",
+    # Pylint (PL) - additional checks
+    "PL",
+    # tryceratops (TRY) - exception handling
+    "TRY",
+    # flake8-type-checking (TCH) - type checking imports
+    "TCH",
+    # flake8-future-annotations (FA) - future annotations
+    "FA",
+]
+
+ignore = [
+    # Allow non-abstract empty methods in base classes
+    "B027",
+    # Allow boolean positional values in function calls
+    "FBT",
+    # Ignore specific pydocstyle errors
+    "D100",  # Missing docstring in public module
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+    "D103",  # Missing docstring in public function
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D107",  # Missing docstring in __init__
+    # Allow relative imports
+    "TID252",
+    # Allow print statements (useful for debugging)
+    "T201",
+    # Allow assert statements in tests
+    "S101",
+    # Allow magic numbers
+    "PLR2004",
+    # Allow long lines in URLs/imports
+    "E501",
+    # Allow unused variables in comprehensions
+    "F841",
+    # Allow try-except-pass
+    "S110",
+    "B904",
+    "TRY003",
+    "TRY201",
+    "PGH003",
+    "ARG001",
+    "TRY300",
+    "PD901",
+    "D404",
+    "D415",
+    "D400"
+]
+
+[lint.per-file-ignores]
+# Tests can have longer lines, unused imports, and assertions
+"tests/**/*.py" = [
+    "E501",  # Line too long
+    "F401",  # Unused imports
+    "S101",  # Use of assert
+    "ARG",   # Unused arguments
+    "PLR2004",  # Magic numbers
+]
+# Allow unused imports in __init__.py files
+"**/__init__.py" = [
+    "F401",  # Unused imports
+]
+# Allow Flask app patterns
+"app.py" = [
+    "F401",  # Unused imports (Flask decorators)
+]
+
+[lint.isort]
+known-first-party = ["analyzer", "core", "data_provider"]
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+[lint.mccabe]
+max-complexity = 10

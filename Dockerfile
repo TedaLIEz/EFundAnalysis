@@ -31,4 +31,3 @@ ENV PYTHONUNBUFFERED=1
 
 # Run the Flask application
 CMD ["uv", "run", "flask", "run", "--host", "0.0.0.0", "--port", "5001"]
-

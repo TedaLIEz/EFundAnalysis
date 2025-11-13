@@ -9,6 +9,18 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
+2. Install dependencies:
+```bash
+uv sync --dev
+```
+
+3. Set up git hooks for automatic code formatting and linting:
+```bash
+uv run --dev pre-commit install
+# (Optional) Run pre-commit on all files to test the setup
+uv run --dev pre-commit run --all-files
+```
+
 ## Development
 
 1. Always activate the virtual environment before working on the project
@@ -19,7 +31,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
    - Uninstall a package: Remove it from pyproject.toml and run `uv sync`
 3. Run the application:
    - Run `uv run flask run --host 0.0.0.0 --port=5000 --debug`
- 
+
 ## Project Structure
 
 ```
@@ -61,4 +73,4 @@ uv sync
 ```bash
 source .venv/bin/activate  # on macOS/Linux
 .\.venv\Scripts\activate   # on Windows
-``` 
+```

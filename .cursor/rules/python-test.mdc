@@ -23,5 +23,3 @@ You should always run the test for your code. You can run the following commands
 source venv/bin/activate
 python -m pytest tests/ -v
 ```
-
-

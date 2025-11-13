@@ -28,11 +28,9 @@ Error Handling and Validation
   - Use guard clauses to handle preconditions and invalid states early.
   - Implement proper error logging and user-friendly error messages.
   - Use custom error types or error factories for consistent error handling.
-  - 
+  -
 
 Python/Akshare
 - Refer to https://akshare.akfamily.xyz/introduction.html as the API documentation.
 - Use def for pure functions and async def for asynchronous operations.
 - Use type hints for all function signatures. Prefer Pydantic models over raw dictionaries for input validation.
-
-
