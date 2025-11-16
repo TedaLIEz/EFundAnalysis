@@ -52,7 +52,7 @@ The project uses a `.env` file for configuration. Make sure to set up your envir
 
 ## Testing
 
-The project includes a test suite in the `tests/` directory. To run the tests:
+The project includes a test suite in the `tests/unit` directory. To run the tests:
 
 ```bash
 pytest

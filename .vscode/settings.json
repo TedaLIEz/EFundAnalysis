@@ -1,13 +1,12 @@
 {
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
+  "python.testing.unittestArgs": ["-v", "-s", "./tests/unit", "-p", "test_*.py"],
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": ["tests"],
-  "python.analysis.extraPaths": ["./src"],
   "debugpy.debugJustMyCode": false,
   "cursorpyright.analysis.extraPaths": [
-    "./src"
+    "./core"
   ],
   "code-runner.executorMap": {
     "python": "$workspaceRoot/.venv/bin/python -u $fullFileName"

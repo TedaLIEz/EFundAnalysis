@@ -8,7 +8,7 @@ from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel, Field
 
-from core.llm import create_llm
+from core.llm.model import create_llm
 
 
 class FunctionDescription(BaseModel):

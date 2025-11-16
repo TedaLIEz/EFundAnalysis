@@ -2,7 +2,7 @@
 
 from dotenv import load_dotenv
 
-from core.agent import Agent
+from core.llm.agent import Agent
 from data_provider.common_util import get_date
 from data_provider.fund import get_fund_individual_detail_info, get_fund_info, get_fund_performance
 
