@@ -1,7 +1,7 @@
 [project]
-name = "efund-analysis"
+name = "FinWeave"
 version = "0.1.0"
-description = "E-Fund Analysis Project"
+description = "FinWeave is a multi-agent AI system that automates sophisticated financial analysis and decision-making, simulating a dedicated team of analysts, researchers, and risk managers for you."
 authors = [
     {name = "Jian Guo", email = "aliezted@gmail.com"}
 ]

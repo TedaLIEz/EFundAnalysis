@@ -1,4 +1,4 @@
-# EFund Analysis Project
+# FinWeave Project
 
 This project uses `uv` (a fast Python package installer and resolver) for dependency management.
 

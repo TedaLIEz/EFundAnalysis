@@ -1,4 +1,4 @@
-"""Main entry point for the EFund Analysis project."""
+"""Main entry point for the project."""
 
 from dotenv import load_dotenv
 
