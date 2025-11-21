@@ -25,4 +25,7 @@ jobs:
         run: uv sync --dev
       - name: Validate Python files
         run: |
+          uv run --dev ruff check
+          uv run --dev --with pip \
+            python -m mypy --install-types --non-interactive --cache-fine-grained --sqlite-cache .
           uv run python -m compileall ./
