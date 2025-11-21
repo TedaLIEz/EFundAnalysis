@@ -1,6 +1,7 @@
 # Use Python 3.12 as base image
 FROM python:3.12-slim
 
+ENV TZ=UTC
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
@@ -24,10 +25,6 @@ COPY . .
 # Expose the port Flask runs on
 EXPOSE 5001
 
-# Set environment variables
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-ENV PYTHONUNBUFFERED=1
-
-# Run the Flask application
-CMD ["uv", "run", "flask", "run", "--host", "0.0.0.0", "--port", "5001"]
+COPY docker/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]

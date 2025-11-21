@@ -6,10 +6,6 @@ services:
     container_name: finweave
     ports:
       - "5001:5001"
-    environment:
-      - FLASK_APP=app.py
-      - FLASK_ENV=production
-      - PYTHONUNBUFFERED=1
     env_file:
       - .env
     volumes:

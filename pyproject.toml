@@ -32,6 +32,7 @@ dependencies = [
     "marshmallow>=3.21.1",
     "llama-index-llms-siliconflow>=0.3.0",
     "websockets>=15.0.1",
+    "gunicorn>=23.0.0",
 ]
 
 [build-system]
