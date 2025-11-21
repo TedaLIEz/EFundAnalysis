@@ -1,8 +1,10 @@
 from http import HTTPStatus
 
-from flask_restful import Resource  # type: ignore
+from flask import Blueprint
+
+health_bp = Blueprint("health", __name__)
 
 
-class HealthCheck(Resource):
-    def get(self):
-        return {"status": "healthy"}, HTTPStatus.OK
+@health_bp.route("/health", methods=["GET"])
+def health():
+    return {"status": "healthy"}, HTTPStatus.OK
