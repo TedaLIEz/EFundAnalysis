@@ -23,34 +23,21 @@ class FunctionDescription(BaseModel):
 class Agent:
     """AI Agent with function calling capabilities."""
 
-    def __init__(self, llm: FunctionCallingLLM | None = None):
+    def __init__(
+        self, llm: FunctionCallingLLM | None = None, tools: list[Callable] | None = None, verbose: bool = True
+    ):
         """Initialize the agent with a SiliconFlow LLM.
 
         Args:
             llm: Optional FunctionCallingLLM instance. If not provided, one will be created
                 using environment variables.
+            tools: Optional list of callable tools to add to the agent. If not provided, the agent will be created without any tools.
+            verbose: Optional boolean to enable verbose mode. If not provided, the agent will be created in verbose mode.
 
         """
         self.llm = llm or create_llm()
-        self.tools: list[BaseTool] = []
-        self.agent: ReActAgent | None = None
-
-    def add_function(self, func: Callable, name: str | None = None, description: str | None = None):
-        """Add a function that the agent can call.
-
-        Args:
-            func: The function to add
-            name: Optional name for the function (defaults to function name)
-            description: Optional description of what the function does
-
-        """
-        tool = FunctionTool.from_defaults(
-            fn=func, name=name or func.__name__, description=description or func.__doc__ or "No description provided"
-        )
-        self.tools.append(tool)
-
-        # Recreate the agent with updated tools
-        self.agent = ReActAgent.from_tools(tools=self.tools, llm=self.llm, verbose=True)
+        self.tools: list[BaseTool] = [] if tools is None else [FunctionTool.from_defaults(fn=tool) for tool in tools]
+        self.agent: ReActAgent = ReActAgent.from_tools(tools=self.tools, llm=self.llm, verbose=verbose)
 
     def run(self, prompt: str) -> str:
         """Run the agent with a given prompt.
@@ -61,13 +48,7 @@ class Agent:
         Returns:
             The agent's response as a string
 
-        Raises:
-            ValueError: If no functions have been added to the agent
-
         """
-        if not self.agent:
-            raise ValueError("No functions have been added to the agent yet")
-
         try:
             response = self.agent.chat(prompt)
             return str(response)
