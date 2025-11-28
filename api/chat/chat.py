@@ -68,7 +68,7 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             emit("response", {"type": "assistant", "message": response})
 
         except Exception as e:
-            logger.exception(f"Error handling message: {e}")
+            logger.exception("Error handling message")
             emit("error", {"type": "error", "message": "Failed to process message"})
 
     @socketio.on("reset")
@@ -83,5 +83,5 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             else:
                 emit("error", {"type": "error", "message": "No active chat session found."})
         except Exception as e:
-            logger.exception(f"Error resetting chat: {e}")
+            logger.exception("Error resetting chat")
             emit("error", {"type": "error", "message": "Failed to reset chat"})

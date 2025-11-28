@@ -37,6 +37,7 @@ class Agent:
         Args:
             llm: Optional FunctionCallingLLM instance. If not provided, one will be created
                 using environment variables.
+            memory: Optional BaseMemory instance for managing conversation history. If not provided, the agent will be created without memory.
             tools: Optional list of callable tools to add to the agent. If not provided, the agent will be created without any tools.
             verbose: Optional boolean to enable verbose mode. If not provided, the agent will be created in verbose mode.
 

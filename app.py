@@ -5,6 +5,7 @@ import os
 from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
 
+from api.chat.chat import register_socket_handlers
 from api.observability.health import health_bp
 
 logging.basicConfig(level=logging.INFO)
@@ -39,8 +40,6 @@ def internal_server_error(error):
 
 app.register_blueprint(health_bp)
 
-# Import chat handlers to register WebSocket events
-from api.chat.chat import register_socket_handlers
 
 register_socket_handlers(socketio)
 
