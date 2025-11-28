@@ -49,3 +49,6 @@ docker-compose.yml
 # Logs
 *.log
 logs/
+
+# DevUI
+dev_ui/
