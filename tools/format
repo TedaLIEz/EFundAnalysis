@@ -8,5 +8,3 @@ cd "$SCRIPT_DIR/.."
 uv run --dev ruff check --fix ./
 uv run --dev ruff format ./
 uv run --dev dotenv-linter ./.env.example
-
-tools/mypy_check
