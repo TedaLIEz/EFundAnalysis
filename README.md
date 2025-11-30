@@ -33,7 +33,7 @@ uv run --dev pre-commit run --all-files
    - Add a new dependency to pyproject.toml: Add it to the dependencies list and run `uv sync`
    - Uninstall a package: Remove it from pyproject.toml and run `uv sync`
 3. Run the application:
-   - Development mode: `uv run app.py`
+   - Development mode: `uv run python app.py`
 
 ## Project Structure
 

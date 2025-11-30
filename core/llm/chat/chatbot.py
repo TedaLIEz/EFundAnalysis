@@ -1,10 +1,14 @@
 """Basic chatbot implementation using LlamaIndex."""
 
+import logging
+
 from llama_index.core.chat_engine import SimpleChatEngine
 from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.memory import ChatMemoryBuffer
 
 from core.llm.model import create_llm
+
+logger = logging.getLogger(__name__)
 
 
 class Chatbot:
@@ -37,6 +41,7 @@ class Chatbot:
 
         try:
             response = self.chat_engine.chat(message)
+            logger.info(f"Return response length: {len(str(response))}")
             return str(response)
         except Exception as e:
             return f"An error occurred while processing your message: {str(e)}"

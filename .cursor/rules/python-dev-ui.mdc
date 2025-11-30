@@ -1,0 +1,18 @@
+---
+alwaysApply: true
+globs: dev_ui/**/*.py
+---
+
+You are an expert in Python, writing a scalable UI with the streamlit library for local testing purpose.
+
+Key Principles
+
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Favor named exports for routes and utility functions.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+- Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
+- Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`

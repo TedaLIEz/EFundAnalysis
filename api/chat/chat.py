@@ -44,7 +44,6 @@ def register_socket_handlers(socketio: SocketIO) -> None:
     @socketio.on("json")
     def handle_json(data: dict) -> None:
         try:
-            logger.info(f"Received data: {data}")
             session_id = request.sid  # type: ignore[attr-defined]
             message = data.get("data", "")
 
@@ -59,7 +58,6 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             if not chatbot:
                 chatbot = Chatbot()
                 _chatbots[session_id] = chatbot
-
             # Get response from chatbot
             response = chatbot.chat(message)
 

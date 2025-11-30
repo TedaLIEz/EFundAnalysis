@@ -23,7 +23,7 @@ uv sync --group ui
 
 ```bash
 # From the project root
-uv run flask run --host 0.0.0.0 --port=5001 --debug
+uv run python app.py
 ```
 
 3. Run the DevUI:

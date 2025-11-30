@@ -1,455 +1,297 @@
-"""Streamlit UI for local debugging of FinWeave service."""
+"""Streamlit UI for local testing of FinWeave chat service."""
 
-import json
+import logging
 import os
 import queue
 import threading
-import time
 from typing import Any
 
-import requests
 import socketio
 import streamlit as st
 
-# Configure Streamlit page
-st.set_page_config(
-    page_title="FinWeave Debug UI",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Default service URL (can be configured via environment variable)
+# Default service URL
 DEFAULT_SERVICE_URL = os.getenv("FINWEAVE_SERVICE_URL", "http://localhost:5001")
 
 
-def check_service_health(service_url: str) -> dict[str, Any]:
-    """Check the health of the FinWeave service.
+def init_session_state() -> None:
+    """Initialize Streamlit session state variables."""
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "socketio_client" not in st.session_state:
+        st.session_state.socketio_client = None
+    if "is_connected" not in st.session_state:
+        st.session_state.is_connected = False
+    if "connection_error" not in st.session_state:
+        st.session_state.connection_error = None
+    if "message_queue" not in st.session_state:
+        st.session_state.message_queue = queue.Queue()
 
-    Args:
-        service_url: Base URL of the FinWeave service
+
+def process_message_queue() -> bool:
+    """Process messages from the queue and update session state.
 
     Returns:
-        Dictionary with health status and response data
-
+        True if any messages were processed, False otherwise
     """
+    processed = False
     try:
-        response = requests.get(f"{service_url}/health", timeout=5)
-        response.raise_for_status()
-        return {"status": "healthy", "data": response.json(), "status_code": response.status_code}
-    except requests.exceptions.ConnectionError:
-        return {
-            "status": "error",
-            "data": {"error": "Connection refused. Is the service running?"},
-            "status_code": None,
-        }
-    except requests.exceptions.Timeout:
-        return {"status": "error", "data": {"error": "Request timeout"}, "status_code": None}
-    except requests.exceptions.RequestException as e:
-        return {"status": "error", "data": {"error": str(e)}, "status_code": None}
+        while True:
+            try:
+                msg = st.session_state.message_queue.get_nowait()
+                msg_type = msg.get("type")
+
+                if msg_type == "connect":
+                    st.session_state.is_connected = True
+                    st.session_state.connection_error = None
+                    processed = True
+                elif msg_type == "disconnect":
+                    st.session_state.is_connected = False
+                    processed = True
+                elif msg_type == "message":
+                    role = msg.get("role", "assistant")
+                    content = msg.get("content", "")
+                    st.session_state.messages.append({"role": role, "content": content})
+                    processed = True
+                elif msg_type == "error":
+                    error_msg = msg.get("message", "An unknown error occurred")
+                    st.session_state.connection_error = error_msg
+                    processed = True
+            except queue.Empty:
+                break
+    except Exception as e:
+        logger.exception("Error processing message queue")
+    return processed
 
 
-def main() -> None:
-    """Main Streamlit application."""
-    st.title("🔍 FinWeave Debug UI")
-    st.markdown("Local debugging interface for FinWeave service")
+def create_socketio_client(service_url: str) -> socketio.Client:
+    """Create and configure a SocketIO client.
 
-    # Sidebar configuration
+    Args:
+        service_url: The base URL of the Flask service
+
+    Returns:
+        Configured SocketIO client instance
+    """
+    client = socketio.Client(logger=False, engineio_logger=False)
+    msg_queue = st.session_state.message_queue
+
+    @client.on("connect")
+    def on_connect() -> None:
+        """Handle successful connection."""
+        msg_queue.put({"type": "connect"})
+        logger.info("Connected to server")
+
+    @client.on("disconnect")
+    def on_disconnect() -> None:
+        """Handle disconnection."""
+        msg_queue.put({"type": "disconnect"})
+        logger.info("Disconnected from server")
+
+    @client.on("connected")
+    def on_connected(data: dict[str, Any]) -> None:
+        """Handle connection confirmation message."""
+        message = data.get("message", "连接成功！可以开始聊天了。")
+        msg_queue.put({"type": "message", "role": "system", "content": message})
+        logger.info(f"Received connection message: {message}")
+
+    @client.on("response")
+    def on_response(data: dict[str, Any]) -> None:
+        """Handle chat response from server."""
+        msg_type = data.get("type", "")
+        message = data.get("message", "")
+        role_map = {"user": "user", "assistant": "assistant", "system": "system"}
+        role = role_map.get(msg_type, "assistant")
+        msg_queue.put({"type": "message", "role": role, "content": message})
+        logger.info(f"Received response: {msg_type} - {message}")
+
+    @client.on("error")
+    def on_error(data: dict[str, Any]) -> None:
+        """Handle error messages from server."""
+        error_msg = data.get("message", "An unknown error occurred")
+        msg_queue.put({"type": "message", "role": "error", "content": error_msg})
+        logger.error(f"Received error: {error_msg}")
+
+    return client
+
+
+def connect_to_server(service_url: str) -> None:
+    """Connect to the Flask SocketIO server.
+
+    Args:
+        service_url: The base URL of the Flask service
+    """
+    if st.session_state.socketio_client and st.session_state.is_connected:
+        logger.info("Already connected")
+        return
+
+    try:
+        if st.session_state.socketio_client:
+            try:
+                st.session_state.socketio_client.disconnect()
+            except Exception:
+                pass
+
+        client = create_socketio_client(service_url)
+
+        # Connect in a separate thread to avoid blocking
+        def connect_thread() -> None:
+            try:
+                client.connect(service_url)
+            except Exception as e:
+                error_msg = f"Failed to connect: {str(e)}"
+                st.session_state.message_queue.put({"type": "error", "message": error_msg})
+                logger.exception("Connection error")
+
+        thread = threading.Thread(target=connect_thread, daemon=True)
+        thread.start()
+        thread.join(timeout=2)  # Wait up to 2 seconds for connection
+
+        st.session_state.socketio_client = client
+        st.session_state.connection_error = None
+    except Exception as e:
+        error_msg = f"Failed to connect: {str(e)}"
+        st.session_state.connection_error = error_msg
+        st.session_state.is_connected = False
+        logger.exception("Connection error")
+
+
+def disconnect_from_server() -> None:
+    """Disconnect from the Flask SocketIO server."""
+    if st.session_state.socketio_client:
+        try:
+            st.session_state.socketio_client.disconnect()
+        except Exception:
+            pass
+        st.session_state.socketio_client = None
+    st.session_state.is_connected = False
+    st.rerun()
+
+
+def send_message(message: str) -> None:
+    """Send a message to the server.
+
+    Args:
+        message: The message to send
+    """
+    if not st.session_state.is_connected or not st.session_state.socketio_client:
+        st.error("Not connected to server. Please connect first.")
+        return
+
+    try:
+        st.session_state.socketio_client.emit("json", {"data": message})
+        logger.info(f"Sent message: {message}")
+    except Exception as e:
+        error_msg = f"Failed to send message: {str(e)}"
+        st.error(error_msg)
+        logger.exception("Error sending message")
+
+
+def reset_chat() -> None:
+    """Reset the chat conversation."""
+    if not st.session_state.is_connected or not st.session_state.socketio_client:
+        st.error("Not connected to server. Please connect first.")
+        return
+
+    try:
+        st.session_state.socketio_client.emit("reset")
+        st.session_state.messages = []
+        logger.info("Reset chat requested")
+    except Exception as e:
+        error_msg = f"Failed to reset chat: {str(e)}"
+        st.error(error_msg)
+        logger.exception("Error resetting chat")
+
+
+def render_chat_interface() -> None:
+    """Render the main chat interface."""
+    st.title("FinWeave Chat - Dev UI")
+
+    # Sidebar for configuration
     with st.sidebar:
-        st.header("⚙️ Configuration")
+        st.header("Configuration")
         service_url = st.text_input(
             "Service URL",
             value=DEFAULT_SERVICE_URL,
-            help="Base URL of the FinWeave Flask service",
+            help="The URL of the Flask SocketIO server",
         )
+
         st.divider()
 
-        # Health check button
-        if st.button("🔍 Check Service Health", use_container_width=True):
-            with st.spinner("Checking service health..."):
-                health_result = check_service_health(service_url)
-                if health_result["status"] == "healthy":
-                    st.success("✅ Service is healthy!")
-                    st.json(health_result["data"])
-                else:
-                    st.error("❌ Service is not available")
-                    st.json(health_result["data"])
+        st.header("Connection")
+        connection_status = "🟢 Connected" if st.session_state.is_connected else "🔴 Disconnected"
+        st.markdown(f"**Status:** {connection_status}")
 
-    # Main content area
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Service Status", "🔧 API Testing", "🔌 WebSocket Testing", "📝 Logs & Info"])
+        if st.session_state.connection_error:
+            st.error(st.session_state.connection_error)
 
-    with tab1:
-        st.header("Service Status")
         col1, col2 = st.columns(2)
-
         with col1:
-            st.subheader("Health Check")
-            if st.button("Check Health", type="primary"):
-                with st.spinner("Checking..."):
-                    health_result = check_service_health(service_url)
-                    if health_result["status"] == "healthy":
-                        st.success("✅ Service is healthy")
-                        st.json(health_result["data"])
-                    else:
-                        st.error("❌ Service is not available")
-                        st.json(health_result["data"])
-
-        with col2:
-            st.subheader("Service Information")
-            st.info(f"**Service URL:** {service_url}")
-            st.info(f"**Health Endpoint:** {service_url}/health")
-
-    with tab2:
-        st.header("API Testing")
-        st.markdown("Test various API endpoints of the FinWeave service")
-
-        # API endpoint selector
-        endpoint_type = st.selectbox(
-            "Select Endpoint Type",
-            ["Health Check", "Custom Endpoint"],
-            help="Choose a predefined endpoint or enter a custom one",
-        )
-
-        if endpoint_type == "Health Check":
-            endpoint = "/health"
-            method = "GET"
-        else:
-            endpoint = st.text_input("Endpoint Path", value="/", help="Enter the API endpoint path (e.g., /api/funds)")
-            method = st.selectbox("HTTP Method", ["GET", "POST", "PUT", "DELETE", "PATCH"])
-
-        # Request parameters
-        if method in ["POST", "PUT", "PATCH"]:
-            request_body = st.text_area(
-                "Request Body (JSON)",
-                value="{}",
-                height=200,
-                help="Enter JSON request body",
-            )
-
-        # Send request button
-        if st.button("🚀 Send Request", type="primary"):
-            try:
-                url = f"{service_url}{endpoint}"
-                headers = {"Content-Type": "application/json"}
-
-                with st.spinner("Sending request..."):
-                    json_data = {}
-                    if method in ["POST", "PUT", "PATCH"] and request_body:
-                        try:
-                            json_data = json.loads(request_body)
-                        except json.JSONDecodeError as e:
-                            st.error(f"❌ Invalid JSON in request body: {str(e)}")
-                            return
-
-                    if method == "GET":
-                        response = requests.get(url, timeout=10)
-                    elif method == "POST":
-                        response = requests.post(url, json=json_data, headers=headers, timeout=10)
-                    elif method == "PUT":
-                        response = requests.put(url, json=json_data, headers=headers, timeout=10)
-                    elif method == "DELETE":
-                        response = requests.delete(url, timeout=10)
-                    elif method == "PATCH":
-                        response = requests.patch(url, json=json_data, headers=headers, timeout=10)
-
-                    # Display response
-                    st.subheader("Response")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Status Code", response.status_code)
-                    with col2:
-                        st.metric("Response Time", f"{response.elapsed.total_seconds():.2f}s")
-
-                    try:
-                        response_json = response.json()
-                        st.json(response_json)
-                    except ValueError:
-                        st.text(response.text)
-
-            except requests.exceptions.ConnectionError:
-                st.error("❌ Connection refused. Make sure the service is running.")
-            except requests.exceptions.Timeout:
-                st.error("❌ Request timeout")
-            except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-
-    with tab3:
-        st.header("WebSocket Testing")
-        st.markdown("Test WebSocket connections and chat functionality")
-
-        # Initialize session state for WebSocket
-        if "socket_client" not in st.session_state:
-            st.session_state.socket_client = None
-        if "socket_connected" not in st.session_state:
-            st.session_state.socket_connected = False
-        if "socket_messages" not in st.session_state:
-            st.session_state.socket_messages = []
-        if "socket_error" not in st.session_state:
-            st.session_state.socket_error = None
-        if "socket_connecting" not in st.session_state:
-            st.session_state.socket_connecting = False
-        if "socket_message_queue" not in st.session_state:
-            # Thread-safe queue for messages from WebSocket handlers
-            st.session_state.socket_message_queue = queue.Queue()
-
-        # Process messages from the queue (thread-safe way to update session state)
-        try:
-            msg_queue = st.session_state.socket_message_queue
-            while True:
-                try:
-                    action_msg = msg_queue.get_nowait()
-                    action = action_msg.get("action")
-
-                    if action == "add_message":
-                        st.session_state.socket_messages.append(action_msg.get("message"))
-                    elif action == "set_connected":
-                        st.session_state.socket_connected = action_msg.get("value", False)
-                    elif action == "set_connecting":
-                        st.session_state.socket_connecting = action_msg.get("value", False)
-                    elif action == "set_error":
-                        st.session_state.socket_error = action_msg.get("value")
-                except queue.Empty:
-                    break
-        except (AttributeError, KeyError):
-            # Queue doesn't exist yet, initialize it
-            if "socket_message_queue" not in st.session_state:
-                st.session_state.socket_message_queue = queue.Queue()
-
-        col1, col2 = st.columns([2, 1])
-
-        with col1:
-            socket_url = st.text_input(
-                "WebSocket URL",
-                value=service_url,
-                help="Base URL for WebSocket connection (Socket.IO will append /socket.io/)",
-                key="socket_url_input",
-            )
-
-        with col2:
-            st.write("")  # Spacing
-            st.write("")  # Spacing
-            if not st.session_state.socket_connected and not st.session_state.socket_connecting:
-                if st.button("🔌 Connect", type="primary", use_container_width=True):
-                    try:
-                        # Create Socket.IO client
-                        sio = socketio.Client()
-                        st.session_state.socket_client = sio
-                        st.session_state.socket_connecting = True
-
-                        # Capture queue reference for thread-safe access
-                        msg_queue = st.session_state.socket_message_queue
-
-                        # Event handlers - use thread-safe queue instead of direct session state access
-                        @sio.on("connect")
-                        def on_connect():
-                            # Use queue for thread-safe updates
-                            try:
-                                msg_queue.put({"action": "set_connected", "value": True})
-                                msg_queue.put({"action": "set_connecting", "value": False})
-                                msg_queue.put({"action": "set_error", "value": None})
-                            except Exception:
-                                pass  # Ignore errors in background thread
-
-                        @sio.on("disconnect")
-                        def on_disconnect():
-                            try:
-                                msg_queue.put({"action": "set_connected", "value": False})
-                                msg_queue.put({"action": "set_connecting", "value": False})
-                            except Exception:
-                                pass
-
-                        @sio.on("connected")
-                        def on_connected(data: dict):
-                            try:
-                                msg_queue.put(
-                                    {
-                                        "action": "add_message",
-                                        "message": {"type": "system", "timestamp": time.time(), "data": data},
-                                    }
-                                )
-                            except Exception:
-                                pass
-
-                        @sio.on("response")
-                        def on_response(data: dict):
-                            try:
-                                msg_queue.put(
-                                    {
-                                        "action": "add_message",
-                                        "message": {
-                                            "type": data.get("type", "unknown"),
-                                            "timestamp": time.time(),
-                                            "data": data,
-                                        },
-                                    }
-                                )
-                            except Exception:
-                                pass
-
-                        @sio.on("error")
-                        def on_error(data: dict):
-                            try:
-                                msg_queue.put({"action": "set_error", "value": data.get("message", "Unknown error")})
-                                msg_queue.put(
-                                    {
-                                        "action": "add_message",
-                                        "message": {"type": "error", "timestamp": time.time(), "data": data},
-                                    }
-                                )
-                            except Exception:
-                                pass
-
-                        # Connect in a separate thread to avoid blocking
-                        def connect_socket():
-                            try:
-                                sio.connect(socket_url, wait_timeout=5)
-                            except Exception as e:
-                                # Use queue for thread-safe error reporting
-                                try:
-                                    msg_queue.put({"action": "set_error", "value": str(e)})
-                                    msg_queue.put({"action": "set_connected", "value": False})
-                                    msg_queue.put({"action": "set_connecting", "value": False})
-                                except Exception:
-                                    pass
-
-                        thread = threading.Thread(target=connect_socket, daemon=True)
-                        thread.start()
-                        st.rerun()
-
-                    except Exception as e:
-                        st.error(f"❌ Connection error: {str(e)}")
-                        st.session_state.socket_error = str(e)
-                        st.session_state.socket_connecting = False
-            elif st.session_state.socket_connecting:
-                st.info("🔄 Connecting...")
-            elif st.button("🔌 Disconnect", type="secondary", use_container_width=True):
-                try:
-                    if st.session_state.socket_client:
-                        st.session_state.socket_client.disconnect()
-                        st.session_state.socket_client = None
-                    st.session_state.socket_connected = False
-                    st.session_state.socket_messages = []
-                    st.session_state.socket_error = None
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Disconnect error: {str(e)}")
-
-        # Connection status
-        st.divider()
-        status_col1, status_col2 = st.columns([3, 1])
-        with status_col1:
-            if st.session_state.socket_connected:
-                st.success("✅ Connected to WebSocket server")
-            elif st.session_state.socket_connecting:
-                st.info("🔄 Connecting...")
-            elif st.session_state.socket_error:
-                st.error(f"❌ Error: {st.session_state.socket_error}")
-            else:
-                st.info("⏸️ Not connected")
-
-        with status_col2:
-            if st.session_state.socket_connected:
-                if st.button("🔄 Refresh", key="refresh_messages"):
-                    st.rerun()
-
-        # Message input and send
-        if st.session_state.socket_connected:
-            st.subheader("Send Message")
-            col1, col2 = st.columns([4, 1])
-
-            with col1:
-                message_input = st.text_input(
-                    "Message",
-                    placeholder="Type your message here...",
-                    key="message_input",
-                    label_visibility="collapsed",
-                )
-
-            with col2:
-                st.write("")  # Spacing
-                st.write("")  # Spacing
-                send_button = st.button("📤 Send", type="primary", use_container_width=True)
-
-            if send_button and message_input:
-                try:
-                    if st.session_state.socket_client:
-                        st.session_state.socket_client.emit("message", {"message": message_input})
-                        st.session_state.socket_messages.append(
-                            {"type": "sent", "timestamp": time.time(), "data": {"message": message_input}}
-                        )
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Send error: {str(e)}")
-
-            # Reset button
-            if st.button("🔄 Reset Chat", type="secondary"):
-                try:
-                    if st.session_state.socket_client:
-                        st.session_state.socket_client.emit("reset")
-                except Exception as e:
-                    st.error(f"❌ Reset error: {str(e)}")
-
-            st.divider()
-
-            # Messages display
-            st.subheader("Messages")
-            if st.session_state.socket_messages:
-                # Display messages in reverse order (newest first)
-                for msg in reversed(st.session_state.socket_messages[-20:]):  # Show last 20 messages
-                    msg_type = msg.get("type", "unknown")
-                    msg_data = msg.get("data", {})
-                    timestamp = msg.get("timestamp", 0)
-                    time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
-
-                    if msg_type == "system":
-                        st.info(f"**[{time_str}] System:** {msg_data.get('message', '')}")
-                    elif msg_type == "user":
-                        st.text(f"[{time_str}] User: {msg_data.get('message', '')}")
-                    elif msg_type == "assistant":
-                        st.success(f"**[{time_str}] Assistant:** {msg_data.get('message', '')}")
-                    elif msg_type == "sent":
-                        st.text(f"[{time_str}] You sent: {msg_data.get('message', '')}")
-                    elif msg_type == "error":
-                        st.error(f"**[{time_str}] Error:** {msg_data.get('message', '')}")
-                    else:
-                        st.json(msg_data)
-
-                # Clear messages button
-                if st.button("🗑️ Clear Messages", key="clear_messages"):
-                    st.session_state.socket_messages = []
-                    st.rerun()
-            else:
-                st.info("No messages yet. Send a message to start chatting!")
-
-        else:
-            st.info("Connect to the WebSocket server to start testing.")
-
-    with tab4:
-        st.header("Logs & Information")
-        st.markdown("View service logs and debugging information")
-
-        st.subheader("Service Configuration")
-        config_data = {
-            "Service URL": service_url,
-            "Health Endpoint": f"{service_url}/health",
-            "Environment": os.getenv("ENVIRONMENT", "development"),
-        }
-        st.json(config_data)
-
-        st.subheader("Quick Actions")
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            if st.button("🔄 Refresh Status"):
+            if st.button("Connect", disabled=st.session_state.is_connected):
+                connect_to_server(service_url)
                 st.rerun()
 
         with col2:
-            if st.button("📋 Copy Service URL"):
-                st.code(service_url, language=None)
+            if st.button("Disconnect", disabled=not st.session_state.is_connected):
+                disconnect_from_server()
 
-        with col3:
-            if st.button("🌐 Open in Browser"):
-                st.info(f"Open: {service_url}/health")
+        st.divider()
+
+        if st.button("Reset Chat", disabled=not st.session_state.is_connected):
+            reset_chat()
+            st.rerun()
+
+        if st.button("Refresh", disabled=not st.session_state.is_connected):
+            st.rerun()
+
+    # Process message queue - check for new messages
+    if process_message_queue():
+        st.rerun()
+
+    # Main chat area
+    if not st.session_state.is_connected:
+        st.info("👆 Please connect to the server using the sidebar to start chatting.")
+        return
+
+    # Display chat messages
+    for message in st.session_state.messages:
+        role = message.get("role", "assistant")
+        content = message.get("content", "")
+
+        if role == "user":
+            with st.chat_message("user"):
+                st.write(content)
+        elif role == "assistant":
+            with st.chat_message("assistant"):
+                st.write(content)
+        elif role == "system":
+            with st.chat_message("system"):
+                st.info(content)
+        elif role == "error":
+            with st.chat_message("assistant"):
+                st.error(content)
+
+    # Chat input
+    if prompt := st.chat_input("Type your message here..."):
+        send_message(prompt)
+        # Process queue after sending message
+        if process_message_queue():
+            st.rerun()
+        else:
+            st.rerun()  # Rerun to show user message and wait for response
+
+
+def main() -> None:
+    """Main entry point for the Streamlit app."""
+    init_session_state()
+
+    # Process any pending messages from SocketIO handlers
+    if process_message_queue():
+        st.rerun()
+
+    render_chat_interface()
 
 
 if __name__ == "__main__":

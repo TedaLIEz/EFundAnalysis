@@ -14,8 +14,8 @@ Key Principles
 - Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
 - Favor named exports for routes and utility functions.
 - Use the Receive an Object, Return an Object (RORO) pattern.
-- Manage runtime within python virtual envrionment, this has been already included in the @venv folder.
-- Manage dependencies with pip, there is one [requirements.txt](mdc:requirements.txt) in the codebase.
+- Manage runtime within python virtual envrionment, this has been already included in the @.venv folder.
+- Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
 - Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
 
 Error Handling and Validation
