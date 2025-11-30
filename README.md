@@ -35,6 +35,45 @@ uv run --dev pre-commit run --all-files
 3. Run the application:
    - Development mode: `uv run python app.py`
 
+## Local Testing with HTML UI
+
+The easiest way to test the FinWeave service locally is using the lightweight HTML/JavaScript UI:
+
+1. **Start the Flask service:**
+   ```bash
+   uv run python app.py
+   ```
+   The service will be available at `http://localhost:5001`
+
+2. **Open the HTML UI:**
+
+   **Option A: Direct file access**
+   - Simply open `dev_ui/index.html` in your web browser
+
+   **Option B: Using a local HTTP server (recommended)**
+   ```bash
+   # Using Python's built-in server
+   cd dev_ui
+   uv run python -m http.server 8080
+   # Then open http://localhost:8080 in your browser
+
+   # Or using Node.js (if installed)
+   npx http-server -p 8080
+   ```
+
+3. **Connect to the service:**
+   - Enter the service URL (default: `http://localhost:5001`) in the UI
+   - Click "Connect" to establish a SocketIO connection
+   - Start chatting or use the "Health Check" button to test HTTP endpoints
+
+The HTML UI supports:
+- Real-time SocketIO chat messaging
+- HTTP endpoint testing (via `http-utils.js`)
+- Connection management
+- Chat reset functionality
+
+For more details, see [dev_ui/README.md](dev_ui/README.md).
+
 ## Project Structure
 
 ```text
@@ -69,6 +108,10 @@ uv run --dev pre-commit run --all-files
 │   └── fund.py
 ├── docker/               # Docker-related scripts
 │   └── entrypoint.sh     # Container entrypoint script
+├── dev_ui/              # Development UI for local testing
+│   ├── index.html       # HTML/JavaScript chatbot UI
+│   ├── http-utils.js    # HTTP utility functions
+│   └── app.py           # Streamlit UI (alternative)
 └── tools/                # Development tools and scripts
     ├── format            # Code formatting script
     └── mypy_check        # Type checking script
@@ -90,11 +133,9 @@ docker-compose up -d
 
 4. The application will be available at `http://localhost:5001`
 
-5. Check the health endpoint:
-
-```bash
-curl http://localhost:5001/health
-```
+5. Test the application:
+   - **Using HTML UI (recommended):** Open `dev_ui/index.html` in your browser and connect to `http://localhost:5001`
+   - **Using curl:** `curl http://localhost:5001/health`
 
 6. View logs:
 

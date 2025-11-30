@@ -1,16 +1,64 @@
 # FinWeave DevUI Module
 
-This module contains a Streamlit-based UI for local debugging and testing of the FinWeave service.
+This module contains UI options for local debugging and testing of the FinWeave service.
 
-## Purpose
+## UI Options
 
-The DevUI module is designed for local development and debugging purposes. It provides an interactive interface to:
-- Check service health status
-- Test API endpoints
-- Monitor service configuration
-- Debug service interactions
+### Option 1: HTML/JavaScript UI (Recommended for MVP)
 
-## Setup
+A lightweight, simple chatbot interface built with vanilla HTML/JavaScript.
+
+**Features:**
+- Clean chatbot interface
+- SocketIO real-time messaging
+- Easy to extend for HTTP requests
+- No dependencies to install
+- Works directly in browser
+
+**Setup:**
+
+1. Make sure the FinWeave Flask service is running:
+
+```bash
+# From the project root
+uv run python app.py
+```
+
+2. Open `dev_ui/index.html` in your browser, or serve it with a simple HTTP server:
+
+```bash
+# Using Python's built-in server
+cd dev_ui
+python -m http.server 8080
+
+# Or using Node.js (if installed)
+npx http-server -p 8080
+
+# Then open http://localhost:8080 in your browser
+```
+
+3. Enter the service URL (default: `http://localhost:5001`) and click Connect.
+
+**Extending for HTTP Requests:**
+
+The `http-utils.js` file provides utility functions for making HTTP requests:
+
+```javascript
+// Example: Check health endpoint
+const result = await checkHealth();
+if (result.success) {
+    console.log('Service is healthy:', result.data);
+}
+
+// Example: Make a POST request
+const response = await httpPost('/api/endpoint', { key: 'value' });
+```
+
+### Option 2: Streamlit UI
+
+A more feature-rich UI built with Streamlit (requires Python dependencies).
+
+**Setup:**
 
 1. Install UI dependencies using `uv`:
 

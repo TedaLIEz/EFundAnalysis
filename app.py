@@ -26,15 +26,20 @@ def create_app() -> Flask:
 
 
 def init_ext(app: Flask) -> None:
+    from extensions.ext_cors import init_app as init_cors
     from extensions.ext_error_handling import init_app
 
     init_app(app)
+    init_cors(app)
 
 
 app = create_app()
 
 
-socketio = SocketIO()
+socketio = SocketIO(
+    cors_allowed_origins="*",  # Allow all origins for localhost development
+    cors_credentials=True,
+)
 socketio.init_app(app)
 register_socket_handlers(socketio)
 

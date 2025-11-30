@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinWeave Chat - Dev UI</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="http-utils.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .status-indicator.connected {
+            background: #10b981;
+        }
+
+        .config-panel {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .config-panel input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .config-panel button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-connect {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-connect:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .btn-disconnect {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-disconnect:hover:not(:disabled) {
+            background: #dc2626;
+        }
+
+        .btn-reset {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            background: #4f46e5;
+        }
+
+        .btn-health {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-health:hover:not(:disabled) {
+            background: #7c3aed;
+        }
+
+        .config-panel button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #10b981;
+            color: white;
+        }
+
+        .message.system .message-avatar {
+            background: #6366f1;
+            color: white;
+        }
+
+        .message.error .message-avatar {
+            background: #ef4444;
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #3b82f6;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system .message-content {
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.error .message-content {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-container {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-container input:focus {
+            border-color: #3b82f6;
+        }
+
+        .input-container button {
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .input-container button:hover:not(:disabled) {
+            background: #2563eb;
+        }
+
+        .input-container button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+            max-width: 70px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>FinWeave Chat - Dev UI</h1>
+        <div class="connection-status">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="config-panel">
+        <input type="text" id="serviceUrl" placeholder="Service URL" value="http://localhost:5001">
+        <button class="btn-connect" id="connectBtn" onclick="connect()">Connect</button>
+        <button class="btn-disconnect" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        <button class="btn-reset" id="resetBtn" onclick="resetChat()" disabled>Reset Chat</button>
+        <button class="btn-health" id="healthBtn" onclick="checkHealthStatus()">Health Check</button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="empty-state">
+            Connect to the server to start chatting
+        </div>
+    </div>
+
+    <div class="input-container">
+        <input
+            type="text"
+            id="messageInput"
+            placeholder="Type your message here..."
+            disabled
+            onkeypress="handleKeyPress(event)"
+        >
+        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let waitingForResponse = false;
+
+        const DEFAULT_URL = 'http://localhost:5001';
+
+        // DOM elements
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const serviceUrlInput = document.getElementById('serviceUrl');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            statusIndicator.className = `status-indicator ${connected ? 'connected' : ''}`;
+            statusText.textContent = connected ? 'Connected' : 'Disconnected';
+
+            connectBtn.disabled = connected;
+            disconnectBtn.disabled = !connected;
+            resetBtn.disabled = !connected;
+            messageInput.disabled = !connected;
+            sendBtn.disabled = !connected || waitingForResponse;
+        }
+
+        function addMessage(role, content) {
+            // Remove empty state if present
+            const emptyState = chatContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = role === 'user' ? 'U' : role === 'assistant' ? 'A' : role === 'system' ? 'S' : '!';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typingIndicator';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'A';
+
+            const typingContent = document.createElement('div');
+            typingContent.className = 'typing-indicator';
+            typingContent.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+            typingDiv.appendChild(avatar);
+            typingDiv.appendChild(typingContent);
+            chatContainer.appendChild(typingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function connect() {
+            const url = serviceUrlInput.value.trim() || DEFAULT_URL;
+
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io(url, {
+                transports: ['websocket', 'polling'],
+                reconnection: false
+            });
+
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                updateConnectionStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+                updateConnectionStatus(false);
+                waitingForResponse = false;
+                removeTypingIndicator();
+            });
+
+            socket.on('connected', (data) => {
+                console.log('Connection confirmed:', data);
+                addMessage('system', data.message || '连接成功！可以开始聊天了。');
+            });
+
+            socket.on('response', (data) => {
+                console.log('Received response:', data);
+                removeTypingIndicator();
+
+                const msgType = data.type || 'assistant';
+                const message = data.message || '';
+
+                if (msgType === 'user') {
+                    addMessage('user', message);
+                } else if (msgType === 'assistant') {
+                    addMessage('assistant', message);
+                    waitingForResponse = false;
+                    sendBtn.disabled = false;
+                } else if (msgType === 'system') {
+                    addMessage('system', message);
+                }
+            });
+
+            socket.on('error', (data) => {
+                console.error('Error from server:', data);
+                removeTypingIndicator();
+                addMessage('error', data.message || 'An error occurred');
+                waitingForResponse = false;
+                sendBtn.disabled = false;
+            });
+
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                alert(`Failed to connect: ${error.message}`);
+                updateConnectionStatus(false);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            updateConnectionStatus(false);
+            waitingForResponse = false;
+            removeTypingIndicator();
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !isConnected || !socket || waitingForResponse) {
+                return;
+            }
+
+            // Add user message to chat
+            addMessage('user', message);
+
+            // Clear input
+            messageInput.value = '';
+
+            // Show typing indicator
+            waitingForResponse = true;
+            sendBtn.disabled = true;
+            showTypingIndicator();
+
+            // Send message via SocketIO
+            socket.emit('json', { data: message });
+        }
+
+        function resetChat() {
+            if (!isConnected || !socket) {
+                return;
+            }
+
+            socket.emit('reset');
+            chatContainer.innerHTML = '<div class="empty-state">Chat reset. Start a new conversation.</div>';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function checkHealthStatus() {
+            const healthBtn = document.getElementById('healthBtn');
+            healthBtn.disabled = true;
+            healthBtn.textContent = 'Checking...';
+
+            try {
+                const result = await checkHealth();
+                if (result.success) {
+                    addMessage('system', `Health check: ${JSON.stringify(result.data)}`);
+                } else {
+                    addMessage('error', `Health check failed: ${result.error}`);
+                }
+            } catch (error) {
+                addMessage('error', `Health check error: ${error.message}`);
+            } finally {
+                healthBtn.disabled = false;
+                healthBtn.textContent = 'Health Check';
+            }
+        }
+
+        // Initialize
+        updateConnectionStatus(false);
+    </script>
+</body>
+</html>
