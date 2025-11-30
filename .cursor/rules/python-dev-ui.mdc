@@ -3,7 +3,7 @@ alwaysApply: true
 globs: dev_ui/**/*.py
 ---
 
-You are an expert in Python, writing a scalable UI with the streamlit library for local testing purpose.
+You are an expert in Python, writing a scalable UI with the streamlit library for local testing purpose. You should write this UI as a MVP of a LLM application which can send / respond to a socket.io connection.
 
 Key Principles
 
@@ -16,3 +16,4 @@ Key Principles
 - Use the Receive an Object, Return an Object (RORO) pattern.
 - Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
 - Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
+- Follow the code in the rest of the folder outside of `dev_ui` folder to understand the design of the service.
