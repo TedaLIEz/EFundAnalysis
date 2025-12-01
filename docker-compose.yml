@@ -18,3 +18,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  dev_ui:
+    image: nginx:alpine
+    container_name: finweave-dev-ui
+    ports:
+      - "8080:80"
+    volumes:
+      - ./dev_ui:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

@@ -1,10 +1,11 @@
 from flask import Flask
-from flask_cors import CORS
-
-from api.observability.health import health_bp
 
 
 def init_app(app: Flask) -> None:
+    from flask_cors import CORS
+
+    from api.observability.health import health_bp
+
     CORS(
         health_bp,
         origins="*",
