@@ -37,7 +37,29 @@ uv run --dev pre-commit run --all-files
 
 ## Local Testing with HTML UI
 
-The easiest way to test the FinWeave service locally is using the lightweight HTML/JavaScript UI:
+The easiest way to test the FinWeave service locally is using Docker Compose, which starts both the API service and the development UI:
+
+### Using Docker Compose (Recommended)
+
+1. **Start both services:**
+   ```bash
+   docker-compose up -d
+   ```
+   This starts:
+   - The API service at `http://localhost:5001`
+   - The dev UI at `http://localhost:8080`
+
+2. **Access the HTML UI:**
+   - Open `http://localhost:8080` in your web browser
+   - The UI will automatically connect to the API service at `http://localhost:5001`
+
+3. **Use the UI:**
+   - Click "Connect" to establish a SocketIO connection (if not already connected)
+   - Start chatting or use the "Health Check" button to test HTTP endpoints
+
+### Manual Setup (Alternative)
+
+If you prefer to run services manually without Docker:
 
 1. **Start the Flask service:**
    ```bash
@@ -50,7 +72,7 @@ The easiest way to test the FinWeave service locally is using the lightweight HT
    **Option A: Direct file access**
    - Simply open `dev_ui/index.html` in your web browser
 
-   **Option B: Using a local HTTP server (recommended)**
+   **Option B: Using a local HTTP server**
    ```bash
    # Using Python's built-in server
    cd dev_ui
@@ -72,7 +94,6 @@ The HTML UI supports:
 - Connection management
 - Chat reset functionality
 
-For more details, see [dev_ui/README.md](dev_ui/README.md).
 
 ## Project Structure
 
@@ -85,6 +106,7 @@ For more details, see [dev_ui/README.md](dev_ui/README.md).
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker Compose configuration
 ├── .gitignore            # Git ignore rules
+├── .dockerignore         # Docker ignore rules
 ├── app.py                # Flask application entry point
 ├── data/                 # Directory for storing data files
 ├── tests/                # Test files and test resources
@@ -94,24 +116,34 @@ For more details, see [dev_ui/README.md](dev_ui/README.md).
 ├── analyzer/             # Analysis modules and algorithms
 │   └── portfolio_analyzer.py
 ├── api/                  # API endpoints and resources
-│   └── observability/
+│   ├── chat/             # Chat API endpoints
+│   │   └── chat.py
+│   └── observability/    # Observability endpoints
 │       └── health.py     # Health check endpoint
 ├── core/                 # Core functionality and utilities
 │   ├── llm/              # LLM-related modules
 │   │   ├── agent/        # AI agent implementation
+│   │   │   └── agent.py
 │   │   ├── chat/         # Chatbot functionality
+│   │   │   └── chatbot.py
 │   │   ├── model/        # LLM model integrations
+│   │   │   └── siliconflow.py
 │   │   └── rag/          # Retrieval-Augmented Generation
+│   │       └── rag.py
 │   └── sockets/          # WebSocket handlers
+│       └── handler.py
 ├── data_provider/        # Data acquisition and processing modules
 │   ├── common_util.py
 │   └── fund.py
+├── extensions/           # Flask extensions and utilities
+│   ├── ext_blueprint.py  # Blueprint registration
+│   └── ext_error_handling.py  # Error handling setup
 ├── docker/               # Docker-related scripts
 │   └── entrypoint.sh     # Container entrypoint script
 ├── dev_ui/              # Development UI for local testing
 │   ├── index.html       # HTML/JavaScript chatbot UI
 │   ├── http-utils.js    # HTTP utility functions
-│   └── app.py           # Streamlit UI (alternative)
+│   └── nginx.conf       # Nginx configuration for dev UI
 └── tools/                # Development tools and scripts
     ├── format            # Code formatting script
     └── mypy_check        # Type checking script
@@ -119,42 +151,56 @@ For more details, see [dev_ui/README.md](dev_ui/README.md).
 
 ## Docker Compose
 
-The easiest way to run the application is using Docker Compose:
+The easiest way to run the application is using Docker Compose, which starts both the API service and the development UI:
 
 1. Make sure you have Docker and Docker Compose installed on your system.
 
 2. Create a `.env` file in the project root with your environment variables (if not already present).
 
-3. Start the application:
+3. Start both services:
 
 ```bash
 docker-compose up -d
 ```
 
-4. The application will be available at `http://localhost:5001`
+This will start:
+- **API service** at `http://localhost:5001`
+- **Dev UI** at `http://localhost:8080`
 
-5. Test the application:
-   - **Using HTML UI (recommended):** Open `dev_ui/index.html` in your browser and connect to `http://localhost:5001`
+4. Access the application:
+   - **Using HTML UI (recommended):** Open `http://localhost:8080` in your browser
    - **Using curl:** `curl http://localhost:5001/health`
 
-6. View logs:
+5. View logs:
 
 ```bash
+# View logs for all services
 docker-compose logs -f
+
+# View logs for a specific service
+docker-compose logs -f api
+docker-compose logs -f dev_ui
 ```
 
-7. Stop the application:
+6. Stop the application:
 
 ```bash
 docker-compose down
 ```
 
 The Docker Compose setup includes:
-- Automatic health checks
-- Port mapping (5001:5001)
-- Volume mounting for persistent data storage
-- Environment variable support via `.env` file
-- Automatic restart on failure
+- **API service** (`api`):
+  - Automatic health checks
+  - Port mapping (5001:5001)
+  - Volume mounting for persistent data storage (`./data:/app/data`)
+  - Environment variable support via `.env` file
+  - Automatic restart on failure
+- **Dev UI service** (`dev_ui`):
+  - Nginx server serving the HTML/JavaScript UI
+  - Port mapping (8080:80)
+  - Volume mounting for UI files (`./dev_ui:/usr/share/nginx/html:ro`)
+  - Automatic health checks
+  - Automatic restart on failure
 
 ## Environment Variables
 
