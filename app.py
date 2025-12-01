@@ -6,7 +6,6 @@ from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
 
 from api.chat.chat import register_socket_handlers
-from api.observability.health import health_bp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,17 +19,16 @@ if os.getenv("FLASK_RUN_EXCLUDE_PATTERNS") is None:
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    app.register_blueprint(health_bp)
     init_ext(app)
     return app
 
 
 def init_ext(app: Flask) -> None:
-    from extensions.ext_cors import init_app as init_cors
-    from extensions.ext_error_handling import init_app
+    from extensions import ext_blueprint, ext_error_handling
 
-    init_app(app)
-    init_cors(app)
+    extensions = [ext_error_handling, ext_blueprint]
+    for ext in extensions:
+        ext.init_app(app)
 
 
 app = create_app()

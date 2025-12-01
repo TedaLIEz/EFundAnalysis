@@ -62,7 +62,6 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             response = chatbot.chat(message)
 
             # Send user message and bot response
-            emit("response", {"type": "user", "message": message})
             emit("response", {"type": "assistant", "message": response})
 
         except Exception as e:
