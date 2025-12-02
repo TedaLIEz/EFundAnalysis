@@ -51,18 +51,20 @@ def register_socket_handlers(socketio: SocketIO) -> None:
                 emit("error", {"type": "error", "message": "Please provide a valid message."})
                 return
 
-            logger.info(f"Received message from {session_id}: {message}")
+            logger.info(f"Received message from {session_id}")
 
             # Get or create chatbot for this session
             chatbot = _chatbots.get(session_id)
             if not chatbot:
                 chatbot = Chatbot()
                 _chatbots[session_id] = chatbot
-            # Get response from chatbot
-            response = chatbot.chat(message)
 
-            # Send user message and bot response
-            emit("response", {"type": "assistant", "message": response})
+            for response in chatbot.stream_chat(message):
+                if response is not None:
+                    emit("response", {"type": "assistant", "message": response})
+
+            emit("response", {"type": "assistant", "message": "", "done": True})
+            logger.info("Streaming completed")
 
         except Exception as e:
             logger.exception("Error handling message")

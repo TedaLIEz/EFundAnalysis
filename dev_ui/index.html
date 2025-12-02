@@ -193,6 +193,7 @@
             border-radius: 12px;
             line-height: 1.5;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
 
         .message.user .message-content {
@@ -349,6 +350,8 @@
         let socket = null;
         let isConnected = false;
         let waitingForResponse = false;
+        let currentStreamingMessage = null;
+        let streamTimeout = null;
 
         const DEFAULT_URL = 'http://localhost:5001';
 
@@ -427,6 +430,68 @@
             }
         }
 
+        function createStreamingMessage() {
+            // Remove empty state if present
+            const emptyState = chatContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = 'A';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = '';
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return contentDiv;
+        }
+
+        function appendToStreamingMessage(chunk) {
+            if (currentStreamingMessage && chunk) {
+                // Append chunk immediately
+                currentStreamingMessage.textContent += chunk;
+
+                // Force a reflow to ensure the browser renders the update
+                void currentStreamingMessage.offsetHeight;
+
+                // Scroll to bottom as content streams in
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                // Reset timeout - if no chunks arrive for 1000ms, consider stream complete
+                if (streamTimeout) {
+                    clearTimeout(streamTimeout);
+                }
+                streamTimeout = setTimeout(() => {
+                    console.log('Stream completed (timeout)');
+                    completeStreamingMessage();
+                }, 1000);
+            }
+        }
+
+        function completeStreamingMessage() {
+            if (streamTimeout) {
+                clearTimeout(streamTimeout);
+                streamTimeout = null;
+            }
+            if (currentStreamingMessage) {
+                currentStreamingMessage = null;
+                waitingForResponse = false;
+                sendBtn.disabled = false;
+            }
+        }
+
         function connect() {
             const url = serviceUrlInput.value.trim() || DEFAULT_URL;
 
@@ -449,6 +514,7 @@
                 updateConnectionStatus(false);
                 waitingForResponse = false;
                 removeTypingIndicator();
+                completeStreamingMessage();
             });
 
             socket.on('connected', (data) => {
@@ -457,19 +523,35 @@
             });
 
             socket.on('response', (data) => {
-                console.log('Received response:', data);
-                removeTypingIndicator();
+                console.log('Received response chunk:', data);
 
                 const msgType = data.type || 'assistant';
-                const message = data.message || '';
+                const message = data.message;
+                const isDone = data.done === true;
 
                 if (msgType === 'user') {
+                    removeTypingIndicator();
                     addMessage('user', message);
                 } else if (msgType === 'assistant') {
-                    addMessage('assistant', message);
-                    waitingForResponse = false;
-                    sendBtn.disabled = false;
+                    // Handle streaming: append chunks to existing message or create new one
+                    if (!currentStreamingMessage) {
+                        // Start of a new streaming response - remove typing indicator on first chunk
+                        removeTypingIndicator();
+                        currentStreamingMessage = createStreamingMessage();
+                    }
+
+                    // Check if this is a completion signal
+                    if (isDone) {
+                        console.log('Stream completed (done signal)');
+                        completeStreamingMessage();
+                    } else if (message) {
+                        // Append the chunk to the current streaming message
+                        appendToStreamingMessage(message);
+                    }
                 } else if (msgType === 'system') {
+                    // System messages complete the stream
+                    removeTypingIndicator();
+                    completeStreamingMessage();
                     addMessage('system', message);
                 }
             });
@@ -477,6 +559,7 @@
             socket.on('error', (data) => {
                 console.error('Error from server:', data);
                 removeTypingIndicator();
+                completeStreamingMessage();
                 addMessage('error', data.message || 'An error occurred');
                 waitingForResponse = false;
                 sendBtn.disabled = false;
@@ -505,6 +588,13 @@
                 return;
             }
 
+            // Reset streaming state for new message
+            if (streamTimeout) {
+                clearTimeout(streamTimeout);
+                streamTimeout = null;
+            }
+            currentStreamingMessage = null;
+
             // Add user message to chat
             addMessage('user', message);
 
@@ -525,6 +615,11 @@
                 return;
             }
 
+            if (streamTimeout) {
+                clearTimeout(streamTimeout);
+                streamTimeout = null;
+            }
+            currentStreamingMessage = null;
             socket.emit('reset');
             chatContainer.innerHTML = '<div class="empty-state">Chat reset. Start a new conversation.</div>';
         }

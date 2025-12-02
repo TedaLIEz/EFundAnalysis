@@ -1,12 +1,13 @@
 import os
 
 from dotenv import load_dotenv
+from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.llms.azure_openai import AzureOpenAI
 
 load_dotenv()
 
 
-def create_llm() -> AzureOpenAI:
+def create_llm() -> FunctionCallingLLM:
     aoai_api_key = os.getenv("AZURE_OPENAI_KEY")
     aoai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     aoai_api_version = os.getenv("AZURE_OPENAI_VERSION")

@@ -1,6 +1,6 @@
 """Basic chatbot implementation using LlamaIndex."""
 
-from collections.abc import AsyncGenerator
+from collections.abc import Generator
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,7 +9,7 @@ from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.memory import ChatMemoryBuffer
 
 if TYPE_CHECKING:
-    from llama_index.core.chat_engine.types import StreamingAgentChatResponse
+    from llama_index.core.chat_engine.types import AgentChatResponse, StreamingAgentChatResponse
 
 from core.llm.model import create_llm
 
@@ -31,28 +31,16 @@ class Chatbot:
         self.memory = ChatMemoryBuffer.from_defaults()
         self.chat_engine = SimpleChatEngine.from_defaults(llm=self.llm, memory=self.memory)
 
-    async def achat(self, message: str) -> AsyncGenerator[str, None]:
-        """Send a message to the chatbot and get a response using async streaming.
-
-        Args:
-            message: The user's message
-
-        Yields:
-            Streaming text chunks from the chatbot's response
-
-        """
-        if not message or not message.strip():
-            yield "Please provide a valid message."
-            return
-
+    def stream_chat(self, message: str) -> Generator[str, None]:
         try:
-            streaming_response: StreamingAgentChatResponse = await self.chat_engine.astream_chat(message)
+            streaming_response: StreamingAgentChatResponse = self.chat_engine.stream_chat(message)
 
             # Use async_response_gen() instead of directly consuming achat_stream
             # This avoids the "asynchronous generator is already running" error
             # because the background task consumes achat_stream and puts deltas in a queue
             # async_response_gen() also handles None values properly
-            async for token in streaming_response.async_response_gen():
+            # FIXME: siliconflow is not supporting streaming chat.
+            for token in streaming_response.response_gen:
                 if token:
                     yield token
 
@@ -74,7 +62,7 @@ class Chatbot:
             return "Please provide a valid message."
 
         try:
-            response = self.chat_engine.chat(message)
+            response: AgentChatResponse = self.chat_engine.chat(message)
             logger.info(f"Return response length: {len(str(response))}")
             return str(response)
         except Exception as e:
