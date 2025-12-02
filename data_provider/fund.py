@@ -137,14 +137,3 @@ def get_fund_performance(fund_code: str, timeout: float | None = None) -> pd.Dat
     except Exception as e:
         print(f"Error fetching fund performance for {fund_code}: {str(e)}")
         return None
-
-
-if __name__ == "__main__":
-    # Test the new function
-    print("\nTesting fund performance:")
-    perf = get_fund_performance("000001")
-    if perf is not None:
-        print("\nAnnual Performance:")
-        print(perf[perf["业绩类型"] == "年度业绩"].head())
-        print("\nPeriodic Performance:")
-        print(perf[perf["业绩类型"] == "阶段业绩"])

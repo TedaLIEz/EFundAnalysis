@@ -1,10 +1,15 @@
 """Basic chatbot implementation using LlamaIndex."""
 
+from collections.abc import AsyncGenerator
 import logging
+from typing import TYPE_CHECKING
 
 from llama_index.core.chat_engine import SimpleChatEngine
 from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.memory import ChatMemoryBuffer
+
+if TYPE_CHECKING:
+    from llama_index.core.chat_engine.types import StreamingAgentChatResponse
 
 from core.llm.model import create_llm
 
@@ -25,6 +30,35 @@ class Chatbot:
         self.llm = llm or create_llm()
         self.memory = ChatMemoryBuffer.from_defaults()
         self.chat_engine = SimpleChatEngine.from_defaults(llm=self.llm, memory=self.memory)
+
+    async def achat(self, message: str) -> AsyncGenerator[str, None]:
+        """Send a message to the chatbot and get a response using async streaming.
+
+        Args:
+            message: The user's message
+
+        Yields:
+            Streaming text chunks from the chatbot's response
+
+        """
+        if not message or not message.strip():
+            yield "Please provide a valid message."
+            return
+
+        try:
+            streaming_response: StreamingAgentChatResponse = await self.chat_engine.astream_chat(message)
+
+            # Use async_response_gen() instead of directly consuming achat_stream
+            # This avoids the "asynchronous generator is already running" error
+            # because the background task consumes achat_stream and puts deltas in a queue
+            # async_response_gen() also handles None values properly
+            async for token in streaming_response.async_response_gen():
+                if token:
+                    yield token
+
+        except Exception as e:
+            logger.exception("Error in async chat")
+            yield f"An error occurred while processing your message: {str(e)}"
 
     def chat(self, message: str) -> str:
         """Send a message to the chatbot and get a response.

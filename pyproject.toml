@@ -12,11 +12,8 @@ dependencies = [
     "aiohttp>=3.11.13",
     "akshare>=1.16.64",
     "beautifulsoup4>=4.13.3",
-    "httpx>=0.28.1",
-    "llama-index>=0.12.24",
-    "llama-index-agent-openai>=0.4.6",
-    "llama-index-embeddings-openai>=0.3.1",
-    "llama-index-llms-openai>=0.3.25",
+    "httpx[socks]>=0.28.1",
+    "llama-index~=0.14.8",
     "numpy>=1.24.3",
     "openai>=1.66.3",
     "pandas>=2.2.3",
@@ -30,10 +27,11 @@ dependencies = [
     "flask-socketio>=5.3.0",
     "flask-sqlalchemy>=3.1.1",
     "marshmallow>=3.21.1",
-    "llama-index-llms-siliconflow>=0.3.0",
+    "llama-index-llms-siliconflow~=0.4.1",
     "websockets>=15.0.1",
     "gunicorn>=23.0.0",
     "eventlet>=0.40.4",
+    "llama-index-llms-azure-openai~=0.4.2",
 ]
 
 [build-system]
