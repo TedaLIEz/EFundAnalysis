@@ -1,0 +1,22 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker",
+    "ms-azuretools.vscode-docker",
+    "sissel.shopify-liquid",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-python.pytest",
+    "littlefoxteam.vscode-python-test-adapter",
+    "eamodio.gitlens",
+    "ms-vscode.vscode-json",
+    "redhat.vscode-yaml",
+    "ms-vscode.makefile-tools",
+    "formulahendry.code-runner",
+    "mikestead.dotenv",
+    "yzhang.markdown-all-in-one"
+  ]
+}

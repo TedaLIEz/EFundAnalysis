@@ -4,6 +4,7 @@ from flask import request
 from flask_socketio import SocketIO, emit
 
 from core.llm.chat.chatbot import Chatbot
+from core.llm.prompt.prompt_loader import PromptLoader
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,9 @@ def register_socket_handlers(socketio: SocketIO) -> None:
         logger.info(f"Client connected: {session_id}")
 
         # Initialize chatbot for this session
-        chatbot = Chatbot()
+        prompt_loader = PromptLoader()
+        system_prompt = prompt_loader.load_prompt("asset_allocation.liquid")
+        chatbot = Chatbot(system_prompt=system_prompt)
         _chatbots[session_id] = chatbot
 
         emit("connected", {"type": "system", "message": "连接成功！可以开始聊天了。"})

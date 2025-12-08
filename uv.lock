@@ -187,6 +187,15 @@ wheels = [
 ]
 
 [[package]]
+name = "babel"
+version = "2.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/6b/d52e42361e1aa00709585ecc30b3f9684b3ab62530771402248b1b1d6240/babel-2.17.0.tar.gz", hash = "sha256:0c54cffb19f690cdcc52a3b50bcbf71e07a808d1c80d549f2459b9d2cf0afb9d", size = 9951852, upload-time = "2025-02-01T15:17:41.026Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/b8/3fe70c75fe32afc4bb507f75563d39bc5642255d1d94f1f23604725780bf/babel-2.17.0-py3-none-any.whl", hash = "sha256:4d0b53093fdfb4b21c92b5213dba5a1b23885afa8383709427046b21c366e5f2", size = 10182537, upload-time = "2025-02-01T15:17:37.39Z" },
+]
+
+[[package]]
 name = "banks"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -563,6 +572,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
+    { name = "python-liquid" },
     { name = "sqlalchemy" },
     { name = "websockets" },
     { name = "werkzeug" },
@@ -592,7 +602,7 @@ requires-dist = [
     { name = "httpx", extras = ["socks"], specifier = ">=0.28.1" },
     { name = "llama-index", specifier = "~=0.14.8" },
     { name = "llama-index-llms-azure-openai", specifier = "~=0.4.2" },
-    { name = "llama-index-llms-siliconflow", specifier = "~=0.4.1" },
+    { name = "llama-index-llms-siliconflow", specifier = "~=0.4.2" },
     { name = "marshmallow", specifier = ">=3.21.1" },
     { name = "numpy", specifier = ">=1.24.3" },
     { name = "openai", specifier = ">=1.66.3" },
@@ -600,6 +610,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "python-liquid", specifier = ">=2.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.39" },
     { name = "websockets", specifier = ">=15.0.1" },
     { name = "werkzeug", specifier = ">=3.0.1" },
@@ -1109,15 +1120,15 @@ wheels = [
 
 [[package]]
 name = "llama-index-llms-siliconflow"
-version = "0.4.1"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "llama-index-core" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/78/868d50d67945ec56f7a84fc6621088bc317243190a811af905887467c2e6/llama_index_llms_siliconflow-0.4.1.tar.gz", hash = "sha256:a9a0ca0ba864487df7d82ae2e8c9b3d6e8b3f1c6950f56b5f87a1bd55c34b759", size = 7941, upload-time = "2025-09-08T20:32:26.168Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/fe/7bc5b2e583436dfddcb025e9aaab58d576832ebe10ea4583d32aac85b680/llama_index_llms_siliconflow-0.4.2.tar.gz", hash = "sha256:a46d6b010f70db3e0c5710915ac080a88084dd3bde3ed574e38e92543c740997", size = 7956, upload-time = "2025-12-02T15:17:02.528Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9b/21/1b610b4ab8a361f5bb23cd5249c474e57a28e1e90b6b365fffc65c9fcd04/llama_index_llms_siliconflow-0.4.1-py3-none-any.whl", hash = "sha256:1cb790f6e0acccfb0275bcd8a410f33d9997a61906249e56fba5fa6b015f96e6", size = 7725, upload-time = "2025-09-08T20:32:25.14Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/e2/fe948632d1b81f1d223a5e3e261d3095b2c8d20a59fd2d28d551e37a8dca/llama_index_llms_siliconflow-0.4.2-py3-none-any.whl", hash = "sha256:5c77a5cc9be0c97455943f39d6afee7be224e3ecece0dc5c6eae27c581ac72a5", size = 7741, upload-time = "2025-12-02T15:17:01.372Z" },
 ]
 
 [[package]]
@@ -1792,6 +1803,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/d8/63e5535ab21dc4998ba1cfe13690ccf122883a38f025dca24d6e56c05eba/python_engineio-4.12.3.tar.gz", hash = "sha256:35633e55ec30915e7fc8f7e34ca8d73ee0c080cec8a8cd04faf2d7396f0a7a7a", size = 91910, upload-time = "2025-09-28T06:31:36.765Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/f0/c5aa0a69fd9326f013110653543f36ece4913c17921f3e1dbd78e1b423ee/python_engineio-4.12.3-py3-none-any.whl", hash = "sha256:7c099abb2a27ea7ab429c04da86ab2d82698cdd6c52406cb73766fe454feb7e1", size = 59637, upload-time = "2025-09-28T06:31:35.354Z" },
+]
+
+[[package]]
+name = "python-liquid"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "babel" },
+    { name = "markupsafe" },
+    { name = "python-dateutil" },
+    { name = "pytz" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cc/46/3b2731966bf24a1cab027eae3c87c41e379750a7dd8c7041c37b9a29d168/python_liquid-2.1.0.tar.gz", hash = "sha256:a4c2abb24ac40ded8c9ba844ebbfbe78a3e41c6fe10a7bbe94144582569b73d0", size = 93152, upload-time = "2025-08-15T07:33:26.019Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/0d/8c0cc6895ff2ec26b963f055ff2514596e71b509cde3b9ffbbf0f7f59995/python_liquid-2.1.0-py3-none-any.whl", hash = "sha256:d3bbcddff4e1a73287b59218df3471613598271e69ac3d17d97e000f4b984e3e", size = 137984, upload-time = "2025-08-15T07:33:24.274Z" },
 ]
 
 [[package]]
