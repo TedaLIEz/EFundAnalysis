@@ -1,7 +1,7 @@
 """Agent implementation with function calling capabilities using LlamaIndex."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from llama_index.core.agent import ReActAgent
 from llama_index.core.base.llms.types import ChatMessage
@@ -44,7 +44,9 @@ class Agent:
         """
         self.llm = llm or create_llm()
         self.tools: list[BaseTool] = [] if tools is None else [FunctionTool.from_defaults(fn=tool) for tool in tools]
-        self.agent: ReActAgent = ReActAgent.from_tools(tools=self.tools, llm=self.llm, memory=memory, verbose=verbose)
+        self.agent: ReActAgent = ReActAgent.from_tools(  # type: ignore[attr-defined]
+            tools=self.tools, llm=self.llm, memory=memory, verbose=verbose
+        )
 
     def run(self, prompt: str) -> str:
         """Run the agent with a given prompt.
@@ -57,7 +59,7 @@ class Agent:
 
         """
         try:
-            response = self.agent.chat(prompt)
+            response = self.agent.chat(prompt)  # type: ignore[attr-defined]
             return str(response)
         except ValueError as e:
             if "Reached max iterations" in str(e):
@@ -79,4 +81,9 @@ class Agent:
     @property
     def chat_history(self) -> list[ChatMessage]:
         """Get the chat history."""
-        return self.agent.chat_history
+        # Access chat_history from agent, fallback to memory if available
+        if hasattr(self.agent, "chat_history"):
+            return cast("list[ChatMessage]", self.agent.chat_history)  # type: ignore[attr-defined]
+        if hasattr(self.agent, "memory") and self.agent.memory:  # type: ignore[attr-defined]
+            return cast("list[ChatMessage]", self.agent.memory.get_all())  # type: ignore[attr-defined]
+        return []

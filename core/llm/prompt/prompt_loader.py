@@ -2,7 +2,7 @@ from liquid import CachingFileSystemLoader, Environment
 
 
 class PromptLoader:
-    def __init__(self, prompt_dir: str | None = "./prompt"):
+    def __init__(self, prompt_dir: str = "./prompt"):
         self.prompt_dir = prompt_dir
         self.env = Environment(loader=CachingFileSystemLoader(self.prompt_dir))
 
