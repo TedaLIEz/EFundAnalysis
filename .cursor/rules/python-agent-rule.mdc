@@ -1,6 +1,6 @@
 ---
 description: This rule is helpful for building an AI agent in the project, you should refer to this rule when you write AI agent like RAG, ReAct agents, etc.
-globs: core/**/*.py
+globs: core/llm/**/*.py
 alwaysApply: false
 ---
 You are an expert in Python, building AI agents by leveraging llamaindex.

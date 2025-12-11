@@ -1,0 +1,41 @@
+{% comment %}
+Template: risk_assessment.liquid
+Purpose: Assess customer risk profile based on basic information and investment preferences
+Variables:
+  - basic_info: BasicInfo dict with fields: age, city, marital_status, employment_status, annual_income, dependents
+  - investment_preference: InvestmentPreference dict with fields: investable_assets, max_loss_tolerance, investment_horizon_years, risk_tolerance, investment_goals, preferred_investment_types
+{% endcomment %}
+
+你是一个专业的风险评估专家。基于以下客户信息,进行全面的风险评估。
+
+基本信息:
+- 年龄: {{ basic_info.age | default: "未知" }}
+- 城市: {{ basic_info.city | default: "未知" }}
+- 婚姻状况: {{ basic_info.marital_status | default: "未知" }}
+- 就业状况: {{ basic_info.employment_status | default: "未知" }}
+- 年收入: {{ basic_info.annual_income | default: "未知" }}
+- 需要抚养人数: {{ basic_info.dependents | default: 0 }}
+
+投资偏好:
+- 可投资资产: {{ investment_preference.investable_assets }} 元
+- 最大亏损承受度: {{ investment_preference.max_loss_tolerance }}%
+- 投资期限: {{ investment_preference.investment_horizon_years }} 年
+- 风险承受能力: {{ investment_preference.risk_tolerance }}
+- 投资目标: {% if investment_preference.investment_goals and investment_preference.investment_goals.size > 0 %}{{ investment_preference.investment_goals | join: ", " }}{% else %}未指定{% endif %}
+- 偏好投资类型: {% if investment_preference.preferred_investment_types and investment_preference.preferred_investment_types.size > 0 %}{{ investment_preference.preferred_investment_types | join: ", " }}{% else %}未指定{% endif %}
+
+请进行风险评估,并以JSON格式返回:
+1. risk_score (风险评分,0-100的浮点数,综合考虑年龄、收入、投资期限、亏损承受度等因素)
+2. risk_level (风险等级:conservative/moderate/balanced/aggressive)
+3. risk_factors (风险因素列表,字符串数组,例如:["年龄较轻", "投资期限较长", "亏损承受度较高"])
+4. suitability_notes (适合性评估说明,字符串,详细说明客户的风险特征和适合的投资策略)
+
+只返回JSON格式,不要包含其他文字说明。
+
+JSON格式示例:
+{
+    "risk_score": 45.5,
+    "risk_level": "moderate",
+    "risk_factors": ["年龄适中", "投资期限较长", "亏损承受度中等"],
+    "suitability_notes": "客户风险承受能力为中等,适合采用平衡型投资策略,建议配置60%股票类资产和40%固定收益类资产。"
+}
