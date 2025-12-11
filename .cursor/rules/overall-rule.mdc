@@ -1,0 +1,236 @@
+---
+alwaysApply: true
+---
+
+# Overall Rules for FinWeave Project
+
+## Python Command Execution
+
+**CRITICAL: Always use `uv run` prefix for any Python command or tool execution.**
+
+- ✅ **CORRECT**: `uv run python app.py`
+- ✅ **CORRECT**: `uv run python -m http.server 8080`
+- ✅ **CORRECT**: `uv run pytest`
+- ✅ **CORRECT**: `uv run --dev pre-commit install`
+- ❌ **WRONG**: `python app.py`
+- ❌ **WRONG**: `pytest`
+- ❌ **WRONG**: `python -m http.server`
+
+When running development tools or scripts that require dev dependencies, use `uv run --dev`:
+- ✅ `uv run --dev pre-commit install`
+- ✅ `uv run --dev pre-commit run --all-files`
+
+## Dependency Management
+
+This project uses `uv` (a fast Python package installer and resolver) for dependency management.
+
+- **Install/update dependencies**: `uv sync --dev`
+- **Install a new package**: `uv pip install package_name` (then add to pyproject.toml and run `uv sync`)
+- **Add dependency**: Add to `pyproject.toml` dependencies list, then run `uv sync`
+- **Remove dependency**: Remove from `pyproject.toml`, then run `uv sync`
+- **If VIRTUAL_ENV warning appears**: Use `uv sync` (the `--active` flag is handled automatically)
+
+## Python Version
+
+- **Required**: Python 3.11 or higher (but less than 3.13)
+- Ensure compatible Python version is installed before setup
+
+## Virtual Environment
+
+- The project uses `uv` which manages virtual environments automatically
+- When using `uv run`, the virtual environment is automatically activated
+- If manual activation is needed: `source .venv/bin/activate` (macOS/Linux) or `.\.venv\Scripts\activate` (Windows)
+
+## Testing
+
+- Run tests using: `uv run pytest`
+- Test files are located in `tests/unit/` and `tests/integration/`
+
+## Code Quality
+
+- Git hooks are set up via: `uv run --dev pre-commit install`
+- Pre-commit runs automatically on git commit
+- Manual run: `uv run --dev pre-commit run --all-files`
+
+## Running the Application
+
+- Development mode: `uv run python app.py`
+- The service runs at `http://localhost:5001` by default
+
+## Docker Development
+
+- Use Docker Compose for local testing: `docker-compose up -d`
+- This starts both API service (port 5001) and dev UI (port 8080)
+- Stop services: `docker-compose down`
+
+## Code Style and Formatting
+
+### Ruff Configuration
+- **Line length**: Maximum 120 characters
+- **Quote style**: Use double quotes (`"`) for strings
+- **Indentation**: Use spaces (not tabs)
+- **Trailing commas**: Include trailing commas in multi-line structures
+
+### Code Formatting Commands
+- Format code: `uv run --dev ruff format --exclude dev_ui --exclude tests ./`
+- Lint and auto-fix: `uv run --dev ruff check --fix --exclude dev_ui --exclude tests ./`
+- Check environment variables: `uv run --dev dotenv-linter ./.env.example`
+- Format all (via script): `./tools/format` (runs formatting, linting, and env checks)
+
+### Type Checking
+- Run type checking: `uv run --dev --with pip python -m mypy --install-types --non-interactive --cache-fine-grained --sqlite-cache .`
+- Type check script: `./tools/mypy_check`
+- **Always use type hints** for function signatures and method definitions
+- Use `typing` module for complex types (e.g., `Callable`, `Any`, `cast`)
+- Enable strict type checking: `warn_return_any`, `check_untyped_defs` are enabled
+
+## Import Organization
+
+- **Import order**: Standard library → Third-party → First-party (analyzer, core, data_provider)
+- Use `isort` for automatic import sorting (configured in ruff)
+- Known first-party packages: `["analyzer", "core", "data_provider"]`
+- Force sort within sections and split on trailing comma
+- Relative imports are allowed (TID252 is ignored)
+
+## Code Quality Standards
+
+### Linting Rules
+- Follow PEP 8 style guide (enforced via ruff)
+- Use descriptive variable names with auxiliary verbs (e.g., `is_active`, `has_permission`)
+- Maximum cyclomatic complexity: 10 (enforced via mccabe)
+- Remove commented-out code (eradicate checks enabled)
+- Use pathlib for file paths (PTH checks enabled)
+- Follow pandas best practices (PD checks enabled)
+
+### Error Handling
+- Handle errors and edge cases at the beginning of functions
+- Use early returns for error conditions to avoid deeply nested if statements
+- Place the happy path last in the function for improved readability
+- Avoid unnecessary else statements; use the if-return pattern instead
+- Use guard clauses to handle preconditions and invalid states early
+- Implement proper error logging and user-friendly error messages
+
+### Code Patterns
+- Prefer functional, declarative programming; use classes only when necessary (e.g., Flask-RESTful Resource classes)
+- Prefer iteration and modularization over code duplication
+- Use the Receive an Object, Return an Object (RORO) pattern where applicable
+- Use list/dict comprehensions when appropriate (C4 checks enabled)
+- Simplify code where possible (SIM checks enabled)
+
+## File and Directory Naming
+
+- **Directories and files**: Use lowercase with underscores (e.g., `api/observability/health.py`)
+- **Test files**: Must match patterns `test_*.py` or `*_test.py`
+- **Module organization**: Organize by domain/feature (e.g., `api/observability/`, `core/llm/agent/`)
+
+## Project Structure
+
+### Core Modules
+- `analyzer/`: Analysis modules and algorithms
+- `core/`: Core functionality and utilities
+  - `llm/`: LLM-related modules (agent, chat, model, rag)
+  - `kyc/`: KYC workflow modules
+  - `sockets/`: WebSocket handlers
+  - `util/`: Utility functions
+- `api/`: API endpoints and resources (organized by domain)
+- `data_provider/`: Data acquisition and processing modules
+- `tests/`: Test files (`unit/`, `integration/`, `data/`)
+
+### Key Files
+- `app.py`: Flask application entry point
+- `pyproject.toml`: Project and dependency configuration
+- `.ruff.toml`: Ruff linting and formatting configuration
+- `mypy.ini`: Type checking configuration
+- `.pre-commit-config.yaml`: Pre-commit hooks configuration
+
+## Environment Variables
+
+- Use `.env` file for local development (not committed to git)
+- Use `.env.example` as a template (committed to git)
+- Load environment variables using `python-dotenv` (`load_dotenv()`)
+- Never commit `.env` or `.env.local` files (they're in `.gitignore`)
+- Validate environment variables using `dotenv-linter` before committing
+
+## Git Workflow
+
+### Pre-commit Hooks
+- Pre-commit runs automatically on `git commit`
+- Hooks include:
+  - Code formatting (ruff format)
+  - Linting (ruff check)
+  - Environment variable validation (dotenv-linter)
+  - Type checking (mypy)
+  - Trailing whitespace removal
+  - End-of-file fixer
+  - YAML validation
+  - Large file checks
+  - Merge conflict detection
+  - Debug statement detection
+
+### Manual Pre-commit Run
+- Test all hooks: `uv run --dev pre-commit run --all-files`
+- Install hooks: `uv run --dev pre-commit install`
+
+## Testing Standards
+
+- **Test location**: `tests/unit/` for unit tests, `tests/integration/` for integration tests
+- **Test naming**: Files must match `test_*.py` or `*_test.py` patterns
+- **Run tests**: `uv run pytest` or `uv run pytest tests/unit -v`
+- **Test data**: Store test data files in `tests/data/`
+- Tests can use assertions (`S101` ignored for tests)
+- Tests can have longer lines and unused imports (relaxed rules)
+
+## Excluded Directories
+
+The following directories are excluded from linting/formatting:
+- `dev_ui/`: Development UI files (HTML/JavaScript)
+- `tests/`: Test files have relaxed linting rules
+- `__init__.py`: Unused imports allowed
+- `app.py`: Unused imports allowed (Flask decorators)
+
+## Logging
+
+- Use Python's `logging` module consistently
+- Create loggers: `logger = logging.getLogger(__name__)`
+- Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- Log errors with context and user-friendly messages
+
+## Security Best Practices
+
+- Validate and sanitize all user inputs
+- Use environment variables for sensitive configuration (secrets, API keys)
+- Never hardcode credentials or API keys
+- Use HTTPS in production
+- Implement proper authentication and authorization where needed
+- Use CORS appropriately; avoid allowing all origins in production
+
+## API Response Patterns
+
+### HTTP API Responses
+- **Success responses**: Return `{"data": ...}` or direct data dict
+- **Error responses**: Return `{"error": "message"}` with appropriate HTTP status code
+- Use `HTTPStatus` enum from `http` module for status codes (not magic numbers)
+- Return tuples: `(dict, status_code)` or `(dict, status_code, headers)`
+- Use `jsonify()` in error handlers, but return dicts from Resource methods (Flask-RESTful handles serialization)
+
+### WebSocket Responses
+- **Success responses**: `{"type": "assistant"|"system", "message": "..."}`
+- **Error responses**: `{"type": "error", "message": "..."}`
+- Use `emit()` for sending responses: `emit("response", {...})` or `emit("error", {...})`
+- Handle connection lifecycle: `connect`, `disconnect`, `error` events
+- Use rooms for targeted broadcasting instead of broadcasting to all clients
+
+### Error Handling Patterns
+- Use try-except blocks with `logger.exception()` for error logging
+- Return user-friendly error messages
+- Don't expose internal error details to clients in production
+- Use custom exception classes for domain-specific errors when appropriate
+- Global error handlers are configured in `extensions/ext_error_handling.py`
+
+## Data Validation
+
+- Use Pydantic models (v2) for data validation and serialization
+- Use Marshmallow schemas as alternative for Flask-RESTful serialization
+- Validate required fields early in request handling
+- Return 400 Bad Request for validation errors with descriptive messages
+- Use `request.get_json(silent=True)` or `request.get_json()` with proper None checking
