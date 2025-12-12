@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import threading
 
 from flask import request
 from flask_socketio import SocketIO, emit
@@ -41,8 +43,50 @@ def register_socket_handlers(socketio: SocketIO) -> None:
         if session_id in _kyc_workflows:
             del _kyc_workflows[session_id]
 
+    def stream_events_background(workflow_instance: KYCWorkflow, user_message: str, session_id: str) -> None:
+        """Background task (gevent greenlet) that spawns a thread to run async code."""
+
+        def run_async_in_thread() -> None:
+            """Thread function that runs async code with a clean asyncio context."""
+            try:
+
+                async def run_and_stream() -> None:
+                    # Run the workflow - this needs an event loop
+                    handler = workflow_instance.run(user_input=user_message, customer_id=session_id)
+
+                    # Stream events from the workflow
+                    async for event in handler.stream_events():
+                        if isinstance(event, StreamingChunkEvent):
+                            # Use socketio.emit with room to ensure proper context
+                            socketio.emit("response", {"type": "assistant", "message": event.chunk})
+
+                # Create a new event loop for this thread
+                # This ensures a clean asyncio context unaffected by gevent patching
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    # Run the async function that both runs the workflow and streams events
+                    loop.run_until_complete(run_and_stream())
+                finally:
+                    # Clean up the event loop
+                    loop.close()
+                    asyncio.set_event_loop(None)
+            except Exception as e:
+                logger.exception("Error in async streaming thread")
+                socketio.emit("error", {"type": "error", "message": str(e)})
+
+        # Spawn a thread from within the gevent greenlet
+        # This thread has a clean asyncio context unaffected by gevent's patching
+        thread = threading.Thread(target=run_async_in_thread, daemon=True)
+        thread.start()
+
     @socketio.on("json")
-    async def handle_json(data: dict) -> None:
+    def handle_json(data: dict) -> None:
+        """Handle incoming JSON message and stream workflow events.
+
+        Note: Flask-SocketIO with gevent doesn't properly await async handlers,
+        so we use a background task with threading to run the async streaming code.
+        """
         try:
             session_id = request.sid  # type: ignore[attr-defined]
             message = data.get("data", "")
@@ -59,11 +103,15 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             if not kyc_workflow:
                 kyc_workflow = KYCWorkflow()
                 _kyc_workflows[session_id] = kyc_workflow
-            handler = kyc_workflow.run(user_input=message, customer_id=session_id)
 
-            async for event in handler.stream_events():
-                if isinstance(event, StreamingChunkEvent):
-                    emit("response", {"type": "assistant", "message": event.chunk})
+            # Capture variables for use in the thread
+            workflow_instance = kyc_workflow
+            user_message = message
+
+            # Run async streaming in a background task
+            # Gevent patches asyncio, so we use a thread to get a clean asyncio context
+            # The workflow.run() call also needs an event loop, so we do everything in the async thread
+            socketio.start_background_task(stream_events_background, workflow_instance, user_message, session_id)
 
         except Exception as e:
             logger.exception("Error handling message")

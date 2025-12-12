@@ -31,7 +31,7 @@ app = create_app()
 socketio = SocketIO(
     cors_allowed_origins="*",  # Allow all origins for localhost development
     cors_credentials=True,
-    async_mode="eventlet",
+    async_mode="gevent",
     async_handlers=True,
 )
 socketio.init_app(app)

@@ -87,7 +87,8 @@ ignore = [
     "PD901",
     "D404",
     "D415",
-    "D400"
+    "D400",
+    "PLR0915"
 ]
 
 [lint.per-file-ignores]

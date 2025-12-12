@@ -30,9 +30,9 @@ dependencies = [
     "llama-index-llms-siliconflow~=0.4.2",
     "websockets>=15.0.1",
     "gunicorn>=23.0.0",
-    "eventlet>=0.40.4",
     "llama-index-llms-azure-openai~=0.4.2",
     "python-liquid>=2.1.0",
+    "gevent>=25.9.1",
 ]
 
 [build-system]
