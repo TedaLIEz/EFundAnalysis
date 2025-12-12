@@ -3,13 +3,12 @@ import logging
 from flask import request
 from flask_socketio import SocketIO, emit
 
-from core.llm.chat.chatbot import Chatbot
-from core.llm.prompt.prompt_loader import PromptLoader
+from core.kyc.workflows.kyc_workflow import KYCWorkflow, StreamingChunkEvent
 
 logger = logging.getLogger(__name__)
 
 # Store chatbot instances per session
-_chatbots: dict[str, Chatbot] = {}
+_kyc_workflows: dict[str, KYCWorkflow] = {}
 
 
 def register_socket_handlers(socketio: SocketIO) -> None:
@@ -27,10 +26,8 @@ def register_socket_handlers(socketio: SocketIO) -> None:
         logger.info(f"Client connected: {session_id}")
 
         # Initialize chatbot for this session
-        prompt_loader = PromptLoader()
-        system_prompt = prompt_loader.load_prompt("asset_allocation.liquid")
-        chatbot = Chatbot(system_prompt=system_prompt)
-        _chatbots[session_id] = chatbot
+        kyc_workflow = KYCWorkflow()
+        _kyc_workflows[session_id] = kyc_workflow
 
         emit("connected", {"type": "system", "message": "连接成功！可以开始聊天了。"})
 
@@ -41,11 +38,11 @@ def register_socket_handlers(socketio: SocketIO) -> None:
         logger.info(f"Client disconnected: {session_id}")
 
         # Clean up chatbot instance
-        if session_id in _chatbots:
-            del _chatbots[session_id]
+        if session_id in _kyc_workflows:
+            del _kyc_workflows[session_id]
 
     @socketio.on("json")
-    def handle_json(data: dict) -> None:
+    async def handle_json(data: dict) -> None:
         try:
             session_id = request.sid  # type: ignore[attr-defined]
             message = data.get("data", "")
@@ -57,33 +54,26 @@ def register_socket_handlers(socketio: SocketIO) -> None:
             logger.info(f"Received message from {session_id}")
 
             # Get or create chatbot for this session
-            chatbot = _chatbots.get(session_id)
-            if not chatbot:
-                chatbot = Chatbot()
-                _chatbots[session_id] = chatbot
+            kyc_workflow = _kyc_workflows.get(session_id)
 
-            for response in chatbot.stream_chat(message):
-                if response is not None:
-                    emit("response", {"type": "assistant", "message": response})
+            if not kyc_workflow:
+                kyc_workflow = KYCWorkflow()
+                _kyc_workflows[session_id] = kyc_workflow
+            handler = kyc_workflow.run(user_input=message, customer_id=session_id)
 
-            emit("response", {"type": "assistant", "message": "", "done": True})
-            logger.info("Streaming completed")
+            async for event in handler.stream_events():
+                if isinstance(event, StreamingChunkEvent):
+                    emit("response", {"type": "assistant", "message": event.chunk})
 
         except Exception as e:
             logger.exception("Error handling message")
-            emit("error", {"type": "error", "message": "Failed to process message"})
+            emit("error", {"type": "error", "message": str(e)})
 
     @socketio.on("reset")
     def handle_reset() -> None:
         """Handle chat reset request."""
         try:
             session_id = request.sid  # type: ignore[attr-defined]
-            chatbot = _chatbots.get(session_id)
-            if chatbot:
-                chatbot.reset()
-                emit("response", {"type": "system", "message": "对话历史已重置。"})
-            else:
-                emit("error", {"type": "error", "message": "No active chat session found."})
         except Exception as e:
             logger.exception("Error resetting chat")
             emit("error", {"type": "error", "message": "Failed to reset chat"})
