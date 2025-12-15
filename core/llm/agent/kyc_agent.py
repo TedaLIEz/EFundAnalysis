@@ -12,24 +12,9 @@ from llama_index.core.workflow import StopEvent
 from core.kyc.workflows.kyc_workflow import KYCWorkflow, StreamingChunkEvent
 from core.llm.chat.chatbot import Chatbot
 from core.llm.model import create_llm
+from core.llm.prompt.prompt_loader import PromptLoader
 
 logger = logging.getLogger(__name__)
-
-# Intent detection prompt for classifying user queries
-INTENT_DETECTION_PROMPT = """你是一个意图分类器。请分析用户的输入，判断用户是否在询问关于个人资产配置或投资建议的问题。
-
-如果用户询问以下类型的问题，返回 "kyc_workflow"：
-- 个人资产配置建议
-- 投资组合建议
-- 风险评估和投资建议
-- 根据个人情况（年龄、收入、风险承受能力等）的投资建议
-- 想要进行KYC评估或投资咨询
-
-如果用户询问其他问题（如一般金融知识、市场行情、产品介绍等），返回 "normal_chat"。
-
-用户输入：{user_input}
-
-只返回 "kyc_workflow" 或 "normal_chat"，不要返回其他内容。"""
 
 
 class KYCAgent:
@@ -60,6 +45,7 @@ class KYCAgent:
         self.customer_id = customer_id
         self.chatbot = Chatbot(llm=self.llm, system_prompt=system_prompt)
         self.kyc_workflow: KYCWorkflow | None = None
+        self.prompt_loader = PromptLoader()
 
     def _detect_intent(self, user_input: str) -> str:
         """Detect if user input is about personal asset allocation.
@@ -77,7 +63,7 @@ class KYCAgent:
 
         try:
             # Use LLM to classify intent
-            prompt = INTENT_DETECTION_PROMPT.format(user_input=user_input)
+            prompt = self.prompt_loader.load_prompt_with_context("intent_detection.liquid", {"user_input": user_input})
             response = self.llm.complete(prompt)
             intent = str(response).strip().lower()
 

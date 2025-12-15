@@ -151,6 +151,103 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 - Never commit `.env` or `.env.local` files (they're in `.gitignore`)
 - Validate environment variables using `dotenv-linter` before committing
 
+
+## Prompt Management
+
+### Using PromptLoader
+
+**CRITICAL: Always use `PromptLoader` from `core/llm/prompt/prompt_loader.py` to load prompts. Never hardcode prompt strings in code.**
+
+- ✅ **CORRECT**: Use `PromptLoader` to load prompts from `.liquid` files
+- ❌ **WRONG**: Hardcode prompt strings directly in Python code
+
+### Prompt File Organization
+
+- **Location**: All prompt templates must be stored in the `prompt/` directory
+- **File extension**: Use `.liquid` extension for all prompt templates
+- **Naming**: Use descriptive, lowercase names with underscores (e.g., `intent_detection.liquid`, `kyc.liquid`)
+
+### Creating Prompt Templates
+
+1. **Create the template file** in `prompt/` directory with `.liquid` extension
+2. **Add template metadata** in comments at the top:
+   ```liquid
+   {% comment %}
+   Template: template_name.liquid
+   Purpose: Brief description of what this prompt does
+   Variables:
+     - variable_name: Description of the variable
+   {% endcomment %}
+   ```
+3. **Use Liquid syntax** for variables: `{{ variable_name }}`
+4. **Load in code** using `PromptLoader`:
+   ```python
+   from core.llm.prompt.prompt_loader import PromptLoader
+
+   prompt_loader = PromptLoader()
+   # For prompts without variables
+   prompt = prompt_loader.load_prompt("template_name.liquid")
+   # For prompts with variables
+   prompt = prompt_loader.load_prompt_with_context("template_name.liquid", {"variable_name": value})
+   ```
+
+### Initializing PromptLoader
+
+- **In classes**: Initialize `PromptLoader` in `__init__`:
+  ```python
+  def __init__(self):
+      self.prompt_loader = PromptLoader()
+  ```
+- **In functions**: Create instance when needed:
+  ```python
+  prompt_loader = PromptLoader()
+  prompt = prompt_loader.load_prompt("template.liquid")
+  ```
+
+### Best Practices
+
+- **Never hardcode prompts**: Always create `.liquid` files for prompts, even simple ones
+- **Use variables**: Make prompts configurable through Liquid variables
+- **Document variables**: Always document variables in template comments
+- **Reuse templates**: Create reusable templates that can be used across different contexts
+- **Follow Liquid syntax**: Use proper Liquid syntax (`{{ }}` for output, `{% %}` for logic)
+- **Test templates**: Verify templates work with various variable combinations
+
+### Example: Refactoring Hardcoded Prompts
+
+**Before (❌ WRONG):**
+```python
+PROMPT = """You are a helpful assistant.
+User input: {user_input}
+Please respond."""
+prompt = PROMPT.format(user_input=user_input)
+```
+
+**After (✅ CORRECT):**
+```python
+# In prompt/assistant.liquid:
+{% comment %}
+Template: assistant.liquid
+Purpose: Basic assistant prompt
+Variables:
+  - user_input: User's input message
+{% endcomment %}
+You are a helpful assistant.
+User input: {{ user_input }}
+Please respond.
+
+# In Python code:
+from core.llm.prompt.prompt_loader import PromptLoader
+
+prompt_loader = PromptLoader()
+prompt = prompt_loader.load_prompt_with_context("assistant.liquid", {"user_input": user_input})
+```
+
+### Reference
+
+- See `.cursor/rules/liquid-prompt.mdc` for detailed Liquid syntax guide
+- Existing prompt examples: `prompt/kyc.liquid`, `prompt/intent_detection.liquid`, `prompt/asset_allocation.liquid`
+
 ## Git Workflow
 
 ### Pre-commit Hooks
