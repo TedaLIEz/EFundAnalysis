@@ -123,14 +123,28 @@ class KYCWorkflow(Workflow):
             data = extract_json_from_response(response_text)
 
             # Create BasicInfo model
+            # Handle None values explicitly - dict.get() returns None if key exists with None value
+            age = data.get("age")
+            age = age if age is not None else 30
+            city = data.get("city")
+            city = city if city is not None else "Unknown"
+            marital_status_str = data.get("marital_status")
+            marital_status = MaritalStatus(marital_status_str if marital_status_str is not None else "single")
+            employment_status_str = data.get("employment_status")
+            employment_status = EmploymentStatus(
+                employment_status_str if employment_status_str is not None else "employed"
+            )
+            dependents = data.get("dependents")
+            dependents = dependents if dependents is not None else 0
+
             basic_info = BasicInfo(
-                age=data.get("age", 30),
-                city=data.get("city", "Unknown"),
-                marital_status=MaritalStatus(data.get("marital_status", "single")),
-                employment_status=EmploymentStatus(data.get("employment_status", "employed")),
+                age=age,
+                city=city,
+                marital_status=marital_status,
+                employment_status=employment_status,
                 annual_income=data.get("annual_income"),
                 education_level=data.get("education_level"),
-                dependents=data.get("dependents", 0),
+                dependents=dependents,
             )
 
             # Completion event already emitted by __stream_llm_response__
@@ -196,13 +210,27 @@ class KYCWorkflow(Workflow):
             data = extract_json_from_response(response_text)
 
             # Create InvestmentPreference model
+            # Handle None values explicitly - dict.get() returns None if key exists with None value
+            investable_assets = data.get("investable_assets")
+            investable_assets = investable_assets if investable_assets is not None else 100000
+            max_loss_tolerance = data.get("max_loss_tolerance")
+            max_loss_tolerance = max_loss_tolerance if max_loss_tolerance is not None else 10
+            investment_horizon_years = data.get("investment_horizon_years")
+            investment_horizon_years = investment_horizon_years if investment_horizon_years is not None else 5
+            risk_tolerance_str = data.get("risk_tolerance")
+            risk_tolerance = RiskTolerance(risk_tolerance_str if risk_tolerance_str is not None else "moderate")
+            investment_goals = data.get("investment_goals")
+            investment_goals = investment_goals if investment_goals is not None else []
+            preferred_investment_types = data.get("preferred_investment_types")
+            preferred_investment_types = preferred_investment_types if preferred_investment_types is not None else []
+
             investment_preference = InvestmentPreference(
-                investable_assets=data.get("investable_assets", 100000),
-                max_loss_tolerance=data.get("max_loss_tolerance", 10),
-                investment_horizon_years=data.get("investment_horizon_years", 5),
-                risk_tolerance=RiskTolerance(data.get("risk_tolerance", "moderate")),
-                investment_goals=data.get("investment_goals", []),
-                preferred_investment_types=data.get("preferred_investment_types", []),
+                investable_assets=investable_assets,
+                max_loss_tolerance=max_loss_tolerance,
+                investment_horizon_years=investment_horizon_years,
+                risk_tolerance=risk_tolerance,
+                investment_goals=investment_goals,
+                preferred_investment_types=preferred_investment_types,
                 liquidity_needs=data.get("liquidity_needs"),
             )
 
@@ -281,10 +309,18 @@ class KYCWorkflow(Workflow):
             # Parse JSON response using robust extraction
             data = extract_json_from_response(response_text)
             # Create RiskProfile model
+            # Handle None values explicitly - dict.get() returns None if key exists with None value
+            risk_score = data.get("risk_score")
+            risk_score = float(risk_score if risk_score is not None else 50)
+            risk_level_str = data.get("risk_level")
+            risk_level = RiskTolerance(risk_level_str if risk_level_str is not None else "moderate")
+            risk_factors = data.get("risk_factors")
+            risk_factors = risk_factors if risk_factors is not None else []
+
             risk_profile = RiskProfile(
-                risk_score=float(data.get("risk_score", 50)),
-                risk_level=RiskTolerance(data.get("risk_level", "moderate")),
-                risk_factors=data.get("risk_factors", []),
+                risk_score=risk_score,
+                risk_level=risk_level,
+                risk_factors=risk_factors,
                 suitability_notes=data.get("suitability_notes"),
             )
 

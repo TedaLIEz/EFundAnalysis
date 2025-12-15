@@ -43,8 +43,8 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 
 ## Testing
 
-- Run tests using: `uv run pytest`
-- Test files are located in `tests/unit/` and `tests/integration/`
+- Run tests using: `uv run pytest` in `tests/unit/`
+- Run tests using: `uv run python <test_file>.py` in `tests/integration`
 
 ## Code Quality
 
