@@ -1,10 +1,7 @@
 """KYC Agent that combines chatbot functionality with KYC workflow routing."""
 
-import asyncio
 from collections.abc import AsyncGenerator, Generator
 import logging
-import queue
-import threading
 
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
 from llama_index.core.llms.function_calling import FunctionCallingLLM
@@ -77,13 +74,16 @@ class KYCAgent:
             return "normal_chat"
 
     def stream_chat(self, message: str) -> Generator[str, None]:
-        """Stream a response from the agent.
+        """Stream a response from the agent synchronously.
+
+        Note: KYC workflow routing is not supported in synchronous mode.
+        If KYC workflow is detected, it will fall back to normal chat.
 
         Args:
             message: The user's message
 
         Yields:
-            Response tokens as strings
+            Response tokens as strings (yielded synchronously)
 
         """
         if not message or not message.strip():
@@ -94,19 +94,23 @@ class KYCAgent:
         intent = self._detect_intent(message)
 
         if intent == "kyc_workflow":
-            # Save user message to memory manually for KYC workflow
+            # KYC workflow requires async, fall back to normal chat for sync mode
+            logger.warning("KYC workflow detected but sync mode requested, falling back to normal chat")
+            # Save user message to memory manually
             user_msg = ChatMessage(role=MessageRole.USER, content=message)
             self.chatbot.memory.put(user_msg)
-            # Route to KYC workflow streaming
+            # Use normal chatbot streaming (it automatically saves assistant messages to memory)
             try:
-                yield from self._stream_kyc_workflow(message)
+                for chunk in self.chatbot.stream_chat(message):
+                    yield chunk
             except Exception as e:
-                logger.exception("Error streaming KYC workflow")
-                yield f"An error occurred while processing your KYC request: {str(e)}"
+                logger.exception("Error in chatbot streaming")
+                yield f"An error occurred while processing your message: {str(e)}"
         else:
             # Use normal chatbot streaming (it automatically saves messages to memory)
             try:
-                yield from self.chatbot.stream_chat(message)
+                for chunk in self.chatbot.stream_chat(message):
+                    yield chunk
             except Exception as e:
                 logger.exception("Error in chatbot streaming")
                 yield f"An error occurred while processing your message: {str(e)}"
@@ -199,79 +203,6 @@ class KYCAgent:
         if full_response:
             assistant_msg = ChatMessage(role=MessageRole.ASSISTANT, content=full_response)
             self.chatbot.memory.put(assistant_msg)
-
-    def _stream_kyc_workflow(self, user_input: str) -> Generator[str, None]:
-        """Stream KYC workflow results in real-time as chunks arrive (sync wrapper).
-
-        This is a synchronous wrapper around the async generator that bridges
-        async and sync code using a queue and background thread.
-
-        Args:
-            user_input: The user's input message
-
-        Yields:
-            Response chunks as strings (yielded as they arrive from the workflow)
-
-        """
-        # Use a queue to bridge async generator and sync generator
-        chunk_queue: queue.Queue[str | None] = queue.Queue()
-        error_occurred: threading.Event = threading.Event()
-        error_message: str = ""
-
-        async def consume_async_generator() -> None:
-            """Consume the async generator and put chunks into queue."""
-            try:
-                async for chunk in self._stream_kyc_workflow_async(user_input):
-                    chunk_queue.put(chunk)
-                chunk_queue.put(None)  # Signal completion
-            except Exception as e:
-                logger.exception("Error consuming async generator")
-                error_occurred.set()
-                nonlocal error_message
-                error_message = str(e)
-                chunk_queue.put(None)
-
-        def run_async_in_thread() -> None:
-            """Run async generator in a thread with a clean event loop."""
-            try:
-                # Create a new event loop for this thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    loop.run_until_complete(consume_async_generator())
-                finally:
-                    loop.close()
-                    asyncio.set_event_loop(None)
-            except Exception as e:
-                logger.exception("Error in async thread")
-                error_occurred.set()
-                nonlocal error_message
-                error_message = str(e)
-                chunk_queue.put(None)
-
-        # Start the async generator in a background thread
-        thread = threading.Thread(target=run_async_in_thread, daemon=True)
-        thread.start()
-
-        # Yield chunks as they arrive from the queue
-        while True:
-            try:
-                chunk = chunk_queue.get(timeout=300)  # 5 minute timeout
-                if chunk is None:
-                    # Stream completed
-                    break
-                yield chunk
-            except queue.Empty:
-                logger.exception("Timeout waiting for workflow chunks")
-                yield "Error: Workflow streaming timed out."
-                break
-
-        # Wait for thread to complete
-        thread.join(timeout=1)
-
-        # Check for errors
-        if error_occurred.is_set():
-            yield f"An error occurred: {error_message}"
 
     def reset(self) -> None:
         """Reset the conversation memory and workflow."""

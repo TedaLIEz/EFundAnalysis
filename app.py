@@ -1,42 +1,36 @@
-from http import HTTPStatus
 import logging
-import os
 
-from flask import Flask, jsonify, request
-from flask_socketio import SocketIO
+from fastapi import FastAPI
+import socketio  # type: ignore[import-untyped]
 
 from api.chat.chat import register_socket_handlers
+from extensions.ext_blueprint import init_app as init_blueprints
+from extensions.ext_error_handling import init_app as init_error_handling
+from extensions.ext_logging import init_logging
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+init_logging()
+
 logger = logging.getLogger(__name__)
 
+# FastAPI application
+app = FastAPI()
 
-def create_app() -> Flask:
-    app = Flask(__name__)
-    init_ext(app)
-    return app
+# Socket.IO (sio) create a Socket.IO server
+sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")
 
+# Register SocketIO handlers BEFORE mounting (important!)
+register_socket_handlers(sio)
 
-def init_ext(app: Flask) -> None:
-    from extensions import ext_blueprint, ext_error_handling
+# Wrap with ASGI application and mount at /socket.io/ path
+socket_app = socketio.ASGIApp(sio)
+app.mount("/socket.io", socket_app)
 
-    extensions = [ext_error_handling, ext_blueprint]
-    for ext in extensions:
-        ext.init_app(app)
-
-
-app = create_app()
-
-
-socketio = SocketIO(
-    cors_allowed_origins="*",  # Allow all origins for localhost development
-    cors_credentials=True,
-    async_mode="gevent",
-    async_handlers=True,
-)
-socketio.init_app(app)
-register_socket_handlers(socketio)
-
+# Initialize FastAPI extensions (routers, error handlers, etc.)
+init_blueprints(app)
+init_error_handling(app)
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    import uvicorn
+
+    uvicorn.run("app:app", host="0.0.0.0", port=5001, lifespan="on", reload=True)

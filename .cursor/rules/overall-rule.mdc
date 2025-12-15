@@ -111,7 +111,7 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 - Implement proper error logging and user-friendly error messages
 
 ### Code Patterns
-- Prefer functional, declarative programming; use classes only when necessary (e.g., Flask-RESTful Resource classes)
+- Prefer functional, declarative programming; use classes only when necessary (e.g., for complex resource management)
 - Prefer iteration and modularization over code duplication
 - Use the Receive an Object, Return an Object (RORO) pattern where applicable
 - Use list/dict comprehensions when appropriate (C4 checks enabled)
@@ -137,7 +137,7 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 - `tests/`: Test files (`unit/`, `integration/`, `data/`)
 
 ### Key Files
-- `app.py`: Flask application entry point
+- `app.py`: FastAPI application entry point
 - `pyproject.toml`: Project and dependency configuration
 - `.ruff.toml`: Ruff linting and formatting configuration
 - `mypy.ini`: Type checking configuration
@@ -283,7 +283,7 @@ The following directories are excluded from linting/formatting:
 - `dev_ui/`: Development UI files (HTML/JavaScript)
 - `tests/`: Test files have relaxed linting rules
 - `__init__.py`: Unused imports allowed
-- `app.py`: Unused imports allowed (Flask decorators)
+- `app.py`: Unused imports allowed (FastAPI decorators)
 
 ## Logging
 
@@ -307,14 +307,16 @@ The following directories are excluded from linting/formatting:
 - **Success responses**: Return `{"data": ...}` or direct data dict
 - **Error responses**: Return `{"error": "message"}` with appropriate HTTP status code
 - Use `HTTPStatus` enum from `http` module for status codes (not magic numbers)
-- Return tuples: `(dict, status_code)` or `(dict, status_code, headers)`
-- Use `jsonify()` in error handlers, but return dicts from Resource methods (Flask-RESTful handles serialization)
+- Return dicts directly from route handlers (FastAPI handles JSON serialization automatically)
+- Raise `HTTPException` for error responses: `raise HTTPException(status_code=HTTPStatus.XXX, detail="message")`
 
 ### WebSocket Responses
 - **Success responses**: `{"type": "assistant"|"system", "message": "..."}`
 - **Error responses**: `{"type": "error", "message": "..."}`
-- Use `emit()` for sending responses: `emit("response", {...})` or `emit("error", {...})`
+- Use `await sio.emit()` for sending responses: `await sio.emit("response", {...}, room=sid)` or `await sio.emit("error", {...}, room=sid)`
+- All Socket.IO handlers must be async functions
 - Handle connection lifecycle: `connect`, `disconnect`, `error` events
+- Session ID (sid) is passed as the first parameter to handlers
 - Use rooms for targeted broadcasting instead of broadcasting to all clients
 
 ### Error Handling Patterns
@@ -326,8 +328,9 @@ The following directories are excluded from linting/formatting:
 
 ## Data Validation
 
-- Use Pydantic models (v2) for data validation and serialization
-- Use Marshmallow schemas as alternative for Flask-RESTful serialization
-- Validate required fields early in request handling
-- Return 400 Bad Request for validation errors with descriptive messages
-- Use `request.get_json(silent=True)` or `request.get_json()` with proper None checking
+- Use Pydantic models (v2) for data validation and serialization (automatic with FastAPI)
+- Use Pydantic models for request body validation (FastAPI automatically validates)
+- Use FastAPI's Query, Path, and Body dependencies for query parameters, path parameters, and request bodies
+- Validate required fields using Pydantic model fields (required=True, Optional, etc.)
+- FastAPI automatically returns 422 Unprocessable Entity for validation errors with detailed messages
+- Use Pydantic models as function parameters for automatic request body parsing and validation

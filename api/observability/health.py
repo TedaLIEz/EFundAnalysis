@@ -1,10 +1,9 @@
-from http import HTTPStatus
+from fastapi import APIRouter
 
-from flask import Blueprint
-
-health_bp = Blueprint("health", __name__)
+health_router = APIRouter(tags=["observability"])
 
 
-@health_bp.route("/health", methods=["GET"])
+@health_router.get("/health")
 def health():
-    return {"status": "healthy"}, HTTPStatus.OK
+    """Health check endpoint."""
+    return {"status": "healthy"}
