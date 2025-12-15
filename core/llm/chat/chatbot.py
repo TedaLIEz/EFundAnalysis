@@ -1,6 +1,6 @@
 """Basic chatbot implementation using LlamaIndex."""
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 import logging
 from typing import TYPE_CHECKING
 
@@ -46,6 +46,25 @@ class Chatbot:
                 if token:
                     yield token
 
+        except Exception as e:
+            logger.exception("Error in async chat")
+            yield f"An error occurred while processing your message: {str(e)}"
+
+    async def astream_chat(self, message: str) -> AsyncGenerator[str, None]:
+        """Stream a response from the chatbot asynchronously.
+
+        Args:
+            message: The user's message
+
+        Yields:
+            Response tokens as strings
+
+        """
+        try:
+            streaming_response: StreamingAgentChatResponse = await self.chat_engine.astream_chat(message)
+            async for token in streaming_response.async_response_gen():
+                if token:
+                    yield token
         except Exception as e:
             logger.exception("Error in async chat")
             yield f"An error occurred while processing your message: {str(e)}"

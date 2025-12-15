@@ -42,6 +42,15 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
+# Show print statements and logging output
+addopts = "-s -v --log-cli-level=INFO"
+# Configure logging format for CLI output
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+# Configure pytest-asyncio to automatically detect and run async test functions
+asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
 packages = [
@@ -58,4 +67,5 @@ dev = [
     "ruff~=0.11.10",
     "dotenv-linter~=0.7.0",
     "pre-commit~=4.2.0",
+    "pytest-asyncio>=1.3.0",
 ]

@@ -1,6 +1,6 @@
 ---
 description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python test code..
-globs: tests/unit/*.py
+globs: tests/**/*.py
 alwaysApply: false
 ---
 You are an expert in writting test cases in Python with pytest.
@@ -20,5 +20,5 @@ Key Principles
 How to run the test?
 You should always run the test for your code. You can run the following commands to verify:
 ```
-uv run python -m pytest tests/unit -v
+uv run python -m pytest tests/ -v
 ```

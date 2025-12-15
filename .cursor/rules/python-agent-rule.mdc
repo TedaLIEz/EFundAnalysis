@@ -19,6 +19,19 @@ Key Principles
 - Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
 - Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
 
+LLM Chat Functions
+
+- **Always prioritize streaming for LLM chat functions**: When implementing chat functionality with LLMs, streaming should be the primary approach.
+- **Provide both sync and async streaming methods**: Implement both synchronous (`stream_chat`) and asynchronous (`astream_chat`) streaming methods for maximum flexibility.
+- **Streaming benefits**: Streaming provides better user experience (progressive response display), lower perceived latency, and more efficient memory usage for long responses.
+- **Implementation pattern**:
+  - Use generators (`Generator[str, None]`) for synchronous streaming
+  - Use async generators (`AsyncGenerator[str, None]`) for asynchronous streaming
+  - Yield chunks as they arrive from the LLM or workflow
+  - Handle errors gracefully within the streaming loop
+- **Non-streaming as fallback**: Non-streaming methods (`chat`) can be provided as convenience methods, but streaming should be the default implementation.
+- **Memory management**: Ensure conversation memory is updated appropriately after streaming completes (either incrementally or at the end).
+
 
 Folder structure
 - The [agent.py](mdc:src/core/agent/agent.py) contains the class object to set up an AI agent.
