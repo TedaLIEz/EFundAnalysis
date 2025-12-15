@@ -27,7 +27,7 @@ class KYCAgent:
     def __init__(
         self,
         llm: FunctionCallingLLM | None = None,
-        system_prompt: str | None = None,
+        system_prompt: str | None = "./prompt/financial_assistant.liquid",
         customer_id: str | None = None,
     ):
         """Initialize the KYC agent.

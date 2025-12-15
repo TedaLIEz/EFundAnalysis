@@ -58,7 +58,6 @@ def register_socket_handlers(sio: socketio.AsyncServer) -> None:
 
             # Stream agent responses
             async for chunk in kyc_agent.astream_chat(message):
-                logger.info(f"Emitting chunk: {chunk}")
                 await sio.emit("response", {"type": "assistant", "message": chunk}, room=sid)
 
         except Exception as e:
