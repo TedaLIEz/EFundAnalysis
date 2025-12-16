@@ -25,13 +25,13 @@ dependencies = [
     "marshmallow>=3.21.1",
     "llama-index-llms-siliconflow~=0.4.2",
     "websockets>=15.0.1",
-    "gunicorn>=23.0.0",
     "llama-index-llms-azure-openai~=0.4.2",
     "python-liquid>=2.1.0",
     "gevent>=25.9.1",
     "python-socketio>=5.15.0",
     "fastapi>=0.124.4",
     "uvicorn>=0.38.0",
+    "eventlet>=0.40.4",
 ]
 
 [build-system]

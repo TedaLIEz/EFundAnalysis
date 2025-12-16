@@ -21,7 +21,7 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-dev
 
 
-FROM base AS runner
+FROM builder AS runner
 # Copy application code
 COPY . .
 
