@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinWeave Chat - Dev UI</title>
+    <title>FinWeave Chat</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="config.js"></script>
     <script src="http-utils.js"></script>
     <style>
         * {
@@ -314,7 +315,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>FinWeave Chat - Dev UI</h1>
+        <h1>FinWeave Chat</h1>
         <div class="connection-status">
             <span class="status-indicator" id="statusIndicator"></span>
             <span id="statusText">Disconnected</span>
@@ -322,7 +323,7 @@
     </div>
 
     <div class="config-panel">
-        <input type="text" id="serviceUrl" placeholder="Service URL" value="http://localhost:5001">
+        <input type="text" id="serviceUrl" placeholder="Backend API URL">
         <button class="btn-connect" id="connectBtn" onclick="connect()">Connect</button>
         <button class="btn-disconnect" id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
         <button class="btn-reset" id="resetBtn" onclick="resetChat()" disabled>Reset Chat</button>
@@ -353,7 +354,11 @@
         let currentStreamingMessage = null;
         let streamTimeout = null;
 
-        const DEFAULT_URL = 'http://localhost:5001';
+        // Get backend URL from environment variable or use default
+        // For Azure App Service, set REACT_APP_API_URL in Application Settings
+        const DEFAULT_URL = window.REACT_APP_API_URL ||
+                           (window.location.hostname === 'localhost' ? 'http://localhost:5001' :
+                            `${window.location.protocol}//${window.location.hostname}:5001`);
 
         // DOM elements
         const statusIndicator = document.getElementById('statusIndicator');
@@ -651,7 +656,8 @@
             }
         }
 
-        // Initialize
+        // Initialize - set default URL from environment or auto-detect
+        serviceUrlInput.value = DEFAULT_URL;
         updateConnectionStatus(false);
     </script>
 </body>
