@@ -75,7 +75,7 @@ class KYCWorkflow(Workflow):
     llm: FunctionCallingLLM = create_llm()
     prompt_loader: PromptLoader = PromptLoader()
 
-    async def __stream_llm_response__(self, prompt: str, step_name: str, ctx: Context) -> str:
+    async def __stream_llm_response__(self, prompt: str, step_name: str, ctx: Context, show_output: bool = True) -> str:
         """Stream LLM response chunk by chunk."""
         response_text = ""
         async for token in await self.llm.astream_complete(prompt):
@@ -83,21 +83,23 @@ class KYCWorkflow(Workflow):
             chunk = token.delta if hasattr(token, "delta") and token.delta else ""
             if chunk:
                 response_text += chunk
-                ctx.write_event_to_stream(
-                    StreamingChunkEvent(
-                        chunk=chunk,
-                        step_name=step_name,
-                        is_complete=False,
+                if show_output:
+                    ctx.write_event_to_stream(
+                        StreamingChunkEvent(
+                            chunk=chunk,
+                            step_name=step_name,
+                            is_complete=False,
+                        )
                     )
-                )
         # Emit completion event with newline to separate from log messages
-        ctx.write_event_to_stream(
-            StreamingChunkEvent(
-                chunk="\n",
-                step_name=step_name,
-                is_complete=True,
+        if show_output:
+            ctx.write_event_to_stream(
+                StreamingChunkEvent(
+                    chunk="\n",
+                    step_name=step_name,
+                    is_complete=True,
+                )
             )
-        )
         return response_text.strip()
 
     @step
@@ -117,7 +119,7 @@ class KYCWorkflow(Workflow):
             prompt = self.prompt_loader.load_prompt_with_context("kyc.liquid", {"user_context": user_input})
 
             # Stream LLM response chunk by chunk
-            response_text = await self.__stream_llm_response__(prompt, "collect_basic_info", ctx)
+            response_text = await self.__stream_llm_response__(prompt, "collect_basic_info", ctx, show_output=False)
 
             # Parse JSON response using robust extraction
             data = extract_json_from_response(response_text)
@@ -204,7 +206,9 @@ class KYCWorkflow(Workflow):
             )
 
             # Stream LLM response chunk by chunk
-            response_text = await self.__stream_llm_response__(prompt, "collect_investment_preferences", ctx)
+            response_text = await self.__stream_llm_response__(
+                prompt, "collect_investment_preferences", ctx, show_output=False
+            )
 
             # Parse JSON response using robust extraction
             data = extract_json_from_response(response_text)
@@ -304,7 +308,7 @@ class KYCWorkflow(Workflow):
             )
 
             # Stream LLM response chunk by chunk
-            response_text = await self.__stream_llm_response__(prompt, "assess_risk_profile", ctx)
+            response_text = await self.__stream_llm_response__(prompt, "assess_risk_profile", ctx, show_output=False)
 
             # Parse JSON response using robust extraction
             data = extract_json_from_response(response_text)

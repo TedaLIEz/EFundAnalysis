@@ -1,6 +1,7 @@
 name: Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -29,3 +30,12 @@ jobs:
           uv run --dev --with pip \
             python -m mypy --install-types --non-interactive --cache-fine-grained --sqlite-cache .
           uv run python -m compileall ./
+      - name: "Docker Login"
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - run: |
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/finweave-api:latest
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/finweave-api:latest
