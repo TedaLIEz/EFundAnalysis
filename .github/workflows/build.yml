@@ -26,9 +26,8 @@ jobs:
         run: uv sync --dev
       - name: Validate Python files
         run: |
-          uv run --dev ruff check
-          uv run --dev --with pip \
-            python -m mypy --install-types --non-interactive --cache-fine-grained --sqlite-cache .
+          ./tools/mypy_check
+          ./tools/format
           uv run python -m compileall ./
       - name: "Docker Login"
         uses: azure/docker-login@v1
