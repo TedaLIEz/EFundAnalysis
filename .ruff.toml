@@ -100,6 +100,9 @@ ignore = [
     "ARG",   # Unused arguments
     "PLR2004",  # Magic numbers
 ]
+"data_provider/**/*.py" = [
+    "ERA001", # Remove commented-out code
+]
 # Allow unused imports in __init__.py files
 "**/__init__.py" = [
     "F401",  # Unused imports

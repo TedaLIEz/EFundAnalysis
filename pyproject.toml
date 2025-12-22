@@ -10,7 +10,7 @@ requires-python = ">=3.11,<3.13"
 dependencies = [
     "aiohappyeyeballs>=2.6.1",
     "aiohttp>=3.11.13",
-    "akshare>=1.16.64",
+    "akshare>=1.17.97",
     "beautifulsoup4>=4.13.3",
     "httpx[socks]>=0.28.1",
     "llama-index~=0.14.8",
