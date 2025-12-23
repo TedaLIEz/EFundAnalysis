@@ -10,7 +10,7 @@ from llama_index.core.memory import BaseMemory
 from llama_index.core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel, Field
 
-from core.llm.model import create_llm
+from core.llm.model import LLMFactory
 
 
 class FunctionDescription(BaseModel):
@@ -32,17 +32,17 @@ class Agent:
         tools: list[Callable] | None = None,
         verbose: bool = True,
     ):
-        """Initialize the agent with a SiliconFlow LLM.
+        """Initialize the agent with an LLM.
 
         Args:
             llm: Optional FunctionCallingLLM instance. If not provided, one will be created
-                using environment variables.
+                using the LLMFactory with the provider specified by LLM_PROVIDER environment variable.
             memory: Optional BaseMemory instance for managing conversation history. If not provided, the agent will be created without memory.
             tools: Optional list of callable tools to add to the agent. If not provided, the agent will be created without any tools.
             verbose: Optional boolean to enable verbose mode. If not provided, the agent will be created in verbose mode.
 
         """
-        self.llm = llm or create_llm()
+        self.llm = llm or LLMFactory.create()
         self.tools: list[BaseTool] = [] if tools is None else [FunctionTool.from_defaults(fn=tool) for tool in tools]
         self.agent: ReActAgent = ReActAgent.from_tools(  # type: ignore[attr-defined]
             tools=self.tools, llm=self.llm, memory=memory, verbose=verbose

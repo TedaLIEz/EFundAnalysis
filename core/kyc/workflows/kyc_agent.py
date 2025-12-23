@@ -9,7 +9,7 @@ from llama_index.core.workflow import StopEvent
 
 from core.kyc.workflows.kyc_workflow import KYCWorkflow, StreamingChunkEvent
 from core.llm.chat.chatbot import Chatbot
-from core.llm.model import create_llm
+from core.llm.model import LLMFactory
 from core.llm.prompt.prompt_loader import PromptLoader
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class KYCAgent:
             customer_id: Optional customer ID for KYC workflow tracking.
 
         """
-        self.llm = llm or create_llm()
+        self.llm = llm or LLMFactory.create()
         self.customer_id = customer_id
         self.chatbot = Chatbot(llm=self.llm, system_prompt=system_prompt)
         self.kyc_workflow: KYCWorkflow | None = None

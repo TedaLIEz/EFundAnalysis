@@ -21,7 +21,7 @@ from core.kyc.models.customer import (
     RiskProfile,
     RiskTolerance,
 )
-from core.llm.model import create_llm
+from core.llm.model import LLMFactory
 from core.llm.prompt.prompt_loader import PromptLoader
 from core.util.json_util import extract_json_from_response
 
@@ -72,7 +72,7 @@ class KYCWorkflow(Workflow):
     4. Generates investment suitability profile
     """
 
-    llm: FunctionCallingLLM = create_llm()
+    llm: FunctionCallingLLM = LLMFactory.create()
     prompt_loader: PromptLoader = PromptLoader()
 
     async def __stream_llm_response__(self, prompt: str, step_name: str, ctx: Context, show_output: bool = True) -> str:

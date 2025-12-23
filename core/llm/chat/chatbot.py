@@ -11,7 +11,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 if TYPE_CHECKING:
     from llama_index.core.chat_engine.types import AgentChatResponse, StreamingAgentChatResponse
 
-from core.llm.model import create_llm
+from core.llm.model import LLMFactory
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +20,16 @@ class Chatbot:
     """Basic chatbot with conversation memory."""
 
     def __init__(self, llm: FunctionCallingLLM | None = None, system_prompt: str | None = None):
-        """Initialize the chatbot with a SiliconFlow LLM.
+        """Initialize the chatbot with an LLM.
 
         Args:
             llm: Optional FunctionCallingLLM instance. If not provided, one will be created
-                using environment variables.
+                using the LLMFactory with the provider specified by LLM_PROVIDER environment variable.
             system_prompt: Optional system prompt for the chatbot.
                 If not provided, the chatbot will use the default system prompt.
 
         """
-        self.llm = llm or create_llm()
+        self.llm = llm or LLMFactory.create()
         self.memory = ChatMemoryBuffer.from_defaults()
         self.chat_engine = SimpleChatEngine.from_defaults(llm=self.llm, system_prompt=system_prompt, memory=self.memory)
 

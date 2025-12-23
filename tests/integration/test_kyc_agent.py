@@ -4,7 +4,7 @@ import logging
 
 from tests.integration.test_utils import setup_logging
 
-from core.llm.agent import KYCAgent
+from core.kyc.workflows.kyc_agent import KYCAgent
 from core.llm.prompt.prompt_loader import PromptLoader
 
 setup_logging()

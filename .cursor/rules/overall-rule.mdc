@@ -117,6 +117,37 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 - Use list/dict comprehensions when appropriate (C4 checks enabled)
 - Simplify code where possible (SIM checks enabled)
 
+## Documentation
+
+### Cursor Rules Maintenance
+
+**CRITICAL: Every time when code is updated, you should update the cursor rules under `.cursor/rules/` according to your changes.**
+
+- ✅ **CORRECT**: Update relevant rule files (e.g., `python-llm-rule.mdc`, `python-kyc-module.mdc`, `overall-rule.mdc`) when making code changes
+- ✅ **CORRECT**: Keep project structure documentation in `overall-rule.mdc` synchronized with actual codebase structure
+- ✅ **CORRECT**: Update module-specific rules when adding new features or changing implementations
+- ❌ **WRONG**: Make code changes without updating corresponding documentation in cursor rules
+
+### When to Update Rules
+
+- **New modules or components**: Add documentation to appropriate rule files
+- **Changed project structure**: Update `overall-rule.mdc` Project Structure section
+- **New patterns or conventions**: Document in relevant rule files
+- **API changes**: Update `python-api-rule.mdc` if applicable
+- **LLM/Agent changes**: Update `python-llm-rule.mdc`
+- **KYC workflow changes**: Update `python-kyc-module.mdc`
+- **Data provider changes**: Update `python-data-akshare.mdc` if applicable
+
+### Rule File Organization
+
+- `overall-rule.mdc`: General project rules, structure, and conventions (always applies)
+- `python-llm-rule.mdc`: LLM, agent, RAG, and related AI functionality
+- `python-kyc-module.mdc`: KYC workflow and customer management
+- `python-api-rule.mdc`: API development patterns and FastAPI conventions
+- `python-data-akshare.mdc`: Data provider implementations
+- `python-test.mdc`: Testing standards and patterns
+- `liquid-prompt.mdc`: Liquid template syntax and prompt management
+
 ## File and Directory Naming
 
 - **Directories and files**: Use lowercase with underscores (e.g., `api/observability/health.py`)
@@ -127,14 +158,45 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 
 ### Core Modules
 - `analyzer/`: Analysis modules and algorithms
+  - `portfolio_analyzer.py`: Portfolio analysis functionality
 - `core/`: Core functionality and utilities
-  - `llm/`: LLM-related modules (agent, chat, model, rag)
+  - `llm/`: LLM-related modules
+    - `agent/`: ReActAgent implementation with function calling
+    - `chat/`: Chatbot with streaming support
+    - `embedding/`: Embedding model implementations (SiliconFlow)
+    - `memory/`: Advanced memory system with multiple memory types
+    - `model/`: LLM factory and provider implementations (Azure OpenAI, SiliconFlow)
+    - `prompt/`: Liquid template-based prompt loader
+    - `rag/`: RAG (Retrieval-Augmented Generation) implementation
+    - `tool/`: Utility functions for use as LlamaIndex function tools
   - `kyc/`: KYC workflow modules
-  - `sockets/`: WebSocket handlers
-  - `util/`: Utility functions
+    - `models/`: KYC data models (e.g., `customer.py`)
+    - `workflows/`: KYC agent and workflow implementations
+  - `sockets/`: WebSocket handlers for real-time communication
+  - `util/`: Utility functions (e.g., `json_util.py`)
 - `api/`: API endpoints and resources (organized by domain)
+  - `chat/`: Chat API endpoints
+  - `observability/`: Health check and observability endpoints
 - `data_provider/`: Data acquisition and processing modules
-- `tests/`: Test files (`unit/`, `integration/`, `data/`)
+  - `fund.py`: Fund data provider
+  - `stock.py`: Stock data provider
+- `extensions/`: FastAPI extensions
+  - `ext_blueprint.py`: Blueprint registration
+  - `ext_error_handling.py`: Global error handlers
+  - `ext_logging.py`: Logging configuration
+- `tests/`: Test files
+  - `unit/`: Unit tests
+  - `integration/`: Integration tests
+  - `data/`: Test data files
+- `prompt/`: Liquid template prompt files (`.liquid` extension)
+- `dev_ui/`: Development UI (HTML/JavaScript)
+- `frontend/`: Production frontend
+  - `react/`: React-based frontend application
+- `docker/`: Docker-related files
+  - `entrypoint.sh`: Docker entrypoint script
+- `tools/`: Development tools and scripts
+  - `format`: Code formatting script
+  - `mypy_check`: Type checking script
 
 ### Key Files
 - `app.py`: FastAPI application entry point
@@ -142,6 +204,9 @@ This project uses `uv` (a fast Python package installer and resolver) for depend
 - `.ruff.toml`: Ruff linting and formatting configuration
 - `mypy.ini`: Type checking configuration
 - `.pre-commit-config.yaml`: Pre-commit hooks configuration
+- `docker-compose.yml`: Docker Compose configuration
+- `Dockerfile`: Docker image definition
+- `uv.lock`: Dependency lock file (managed by uv)
 
 ## Environment Variables
 

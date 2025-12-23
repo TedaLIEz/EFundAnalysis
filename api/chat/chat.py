@@ -2,7 +2,7 @@ import logging
 
 import socketio  # type: ignore[import-untyped]
 
-from core.llm.agent.kyc_agent import KYCAgent
+from core.kyc.workflows.kyc_agent import KYCAgent
 
 logger = logging.getLogger(__name__)
 
