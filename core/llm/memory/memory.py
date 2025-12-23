@@ -133,6 +133,7 @@ class LLMMemory:
         from llama_index.core.vector_stores import SimpleVectorStore
 
         # VectorMemoryBlock requires a vector_store parameter
+        # FIXME: Value error, vector_store must store text to be used as a retrieval memory block [type=value_error, input_value=SimpleVectorStore(stores_...d={}, metadata_dict={})), input_type=SimpleVectorStore]
         vector_store = SimpleVectorStore()
         vector_block = VectorMemoryBlock(embed_model=embed_model, vector_store=vector_store)
         return cls(memory_blocks=[vector_block], token_limit=token_limit)
