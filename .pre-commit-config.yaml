@@ -12,13 +12,13 @@ repos:
         entry: ./tools/format
         language: system
         pass_filenames: false
-        always_run: true
+        types: [python]
       - id: mypy-check
         name: Run mypy check
         entry: ./tools/mypy_check
         language: system
         pass_filenames: false
-        always_run: true
+        types: [python]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
