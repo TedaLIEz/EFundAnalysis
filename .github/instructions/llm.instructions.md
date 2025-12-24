@@ -18,9 +18,9 @@ You are an expert in Python, building AI agents by leveraging llamaindex.
 - Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
 - Favor named exports for routes and utility functions.
 - Use the Receive an Object, Return an Object (RORO) pattern.
-- Manage runtime within python virtual envrionment, this has been already included in the @venv folder.
-- Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
-- Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
+- Manage runtime within python virtual environment using `uv` (see overall project rules)
+- Always use `uv run` prefix for Python commands (e.g., `uv run python app.py`)
+- Manage dependencies with `uv sync` and `pyproject.toml`
 
 ## LLM Chat Functions
 
@@ -45,37 +45,54 @@ The LLM module is organized into the following components:
   - Uses `ReActAgent` from LlamaIndex
   - Supports tool registration and function calling
   - Provides `run()` method for synchronous execution
-  - Returns `FunctionDescription` objects for registered functions
-  - Handles max iteration errors gracefully
+  - Provides `get_registered_functions()` method that returns `FunctionDescription` objects
+  - Provides `chat_history` property to access conversation history
+  - Supports optional `memory` parameter for conversation history management
+  - Supports optional `tools` parameter (list of callable functions)
+  - Supports optional `verbose` parameter (defaults to True)
+  - Handles max iteration errors gracefully with user-friendly error messages
 
 - **`core/llm/chat/chatbot.py`**: Basic chatbot with conversation memory
   - Uses `SimpleChatEngine` from LlamaIndex
   - Implements both sync (`stream_chat`) and async (`astream_chat`) streaming
   - Provides non-streaming `chat()` method as fallback
-  - Uses `ChatMemoryBuffer` for conversation history
+  - Uses `Memory.from_defaults()` for conversation history (not ChatMemoryBuffer)
   - Supports system prompts
+  - Provides `reset()` method to clear conversation memory
+  - Provides `get_chat_history()` method to retrieve chat history as list of dicts
 
 - **`core/llm/rag/rag.py`**: RAG (Retrieval-Augmented Generation) implementation
   - Uses `VectorStoreIndex` for document indexing
-  - Supports document loading from directories
+  - Uses `SimpleDirectoryReader` for loading documents from directories
+  - Provides `load_document()` method to load and index documents
   - Provides async `query()` method with custom prompt templates
-  - Requires both LLM and embedding model
+  - Requires both LLM (`FunctionCallingLLM`) and embedding model (`BaseEmbedding`)
+  - Custom prompt template emphasizes concise answers and "I don't know" for unknown queries
 
 ### Model Management
 
 - **`core/llm/model/factory.py`**: Factory pattern for creating LLM instances
   - `LLMFactory` class supports multiple providers (azure_openai, siliconflow)
-  - Uses environment variable `LLM_PROVIDER` to determine default provider
-  - Supports provider registration for extensibility
+  - Uses environment variable `LLM_PROVIDER` to determine default provider (defaults to "azure_openai")
+  - Provides `create()` class method to create LLM instances
+  - Provides `get_supported_providers()` class method to list available providers
+  - Provides `register_provider()` class method for extensibility
   - Returns `FunctionCallingLLM` instances
+  - Raises `ValueError` for unsupported providers
 
 - **`core/llm/model/aopenai.py`**: Azure OpenAI provider implementation
-  - Creates `AzureOpenAI` instances
+  - Exports `create_llm()` function (used internally by factory)
+  - Creates `AzureOpenAI` instances from llama_index.llms.azure_openai
   - Uses environment variables: `AZURE_OPENAI_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_VERSION`, `AZURE_OPENAI_MODEL_NAME`, `AZURE_OPENAI_DEPLOYMENT`
+  - Returns `FunctionCallingLLM` instances
 
 - **`core/llm/model/siliconflow.py`**: SiliconFlow provider implementation
-  - Creates `SiliconFlow` instances
+  - Exports `create_llm()` function (used internally by factory)
+  - Creates `SiliconFlow` instances from llama_index.llms.siliconflow
   - Uses environment variables: `ENDPOINT`, `API_KEY`, `LLM_MODEL`, `MAX_TOKENS`
+  - Raises `ValueError` if required environment variables are missing
+  - Sets temperature=0 by default
+  - Returns `FunctionCallingLLM` instances
 
 - **`core/llm/model/__init__.py`**: Exports `create_llm()`, `LLMFactory`, and `LLMProvider`
   - Maintains backward compatibility with `create_llm()` function
@@ -83,8 +100,10 @@ The LLM module is organized into the following components:
 ### Embedding Models
 
 - **`core/llm/embedding/siliconflow.py`**: SiliconFlow embedding model
-  - Creates `SiliconFlowEmbedding` instances
+  - Exports `create_embedding_model()` function
+  - Creates `SiliconFlowEmbedding` instances from llama_index.embeddings.siliconflow
   - Uses environment variables: `ENDPOINT`, `API_KEY`, `EMBEDDING_MODEL`
+  - Raises `ValueError` if required environment variables are missing
   - Returns `BaseEmbedding` instances
 
 ### Memory Management
@@ -92,17 +111,18 @@ The LLM module is organized into the following components:
 - **`core/llm/memory/memory.py`**: Advanced memory system using LlamaIndex's Memory framework
   - `LLMMemory` class wraps LlamaIndex's `Memory` class
   - Supports multiple memory types:
-    - **Short-term memory**: Chat history with token limits
-    - **Static memory**: Fixed information that persists across conversations
-    - **Fact extraction memory**: Automatically extracts and stores facts from conversations
-    - **Vector memory**: Semantic search over conversation history
+    - **Short-term memory**: Chat history with token limits (default: 3000 tokens)
+    - **Static memory**: Fixed information that persists across conversations (uses `StaticMemoryBlock` with `TextBlock`)
+    - **Fact extraction memory**: Automatically extracts and stores facts from conversations (uses `FactExtractionMemoryBlock`)
+    - **Vector memory**: Semantic search over conversation history (uses `VectorMemoryBlock`)
   - Factory methods:
-    - `from_defaults()`: Short-term memory only
-    - `with_static_memory()`: Adds static memory block
-    - `with_fact_extraction()`: Adds fact extraction memory block
-    - `with_vector_memory()`: Adds vector memory block
-    - `with_all_memory_types()`: Combines all memory types
-  - Returns `BaseMemory` compatible instances via `get_memory()`
+    - `from_defaults()`: Short-term memory only (token_limit parameter)
+    - `with_static_memory()`: Adds static memory block (requires static_content string)
+    - `with_fact_extraction()`: Adds fact extraction memory block (requires LLM)
+    - `with_vector_memory()`: Adds vector memory block (requires embed_model and vector_store)
+    - `with_all_memory_types()`: Combines all memory types (requires llm, embed_model, vector_store, optional static_content)
+  - Returns `Memory` instance (implements `BaseMemory`) via `get_memory()`
+  - Provides `reset()`, `get_all()`, `put()`, and `get()` methods for memory management
 
 ### Prompt Management
 
@@ -118,8 +138,10 @@ The LLM module is organized into the following components:
 ### Tools
 
 - **`core/llm/tool/`**: Utility functions for use as LlamaIndex function tools
-  - `date_util.py`: Date utility functions (e.g., `get_current_date()`)
+  - `date_util.py`: Date utility functions
+    - `get_current_date()`: Returns current date in ISO format (YYYY-MM-DD)
   - Functions can be registered with agents using `FunctionTool.from_defaults()`
+  - Module exports `get_current_date` via `__init__.py`
 
 ## Error Handling and Validation
 
@@ -139,21 +161,42 @@ The LLM module is organized into the following components:
 ```python
 from core.llm.agent import Agent
 from core.llm.tool.date_util import get_current_date
+from core.llm.memory import LLMMemory
 
-## Create agent with default LLM
+## Create agent with default LLM and tools
 agent = Agent(tools=[get_current_date])
+
+## Create agent with custom memory
+memory = LLMMemory.from_defaults(token_limit=5000)
+agent = Agent(tools=[get_current_date], memory=memory.get_memory())
+
+## Create agent with custom LLM and verbose mode
+from core.llm.model import LLMFactory
+llm = LLMFactory.create(provider="siliconflow")
+agent = Agent(llm=llm, tools=[get_current_date], verbose=False)
 
 ## Run agent
 response = agent.run("What is today's date?")
+
+## Get registered functions
+functions = agent.get_registered_functions()
+
+## Access chat history
+history = agent.chat_history
 ```
 
 ### Creating a Chatbot with Streaming
 
 ```python
 from core.llm.chat import Chatbot
+from core.llm.memory import LLMMemory
 
-## Create chatbot
+## Create chatbot with default memory
 chatbot = Chatbot(system_prompt="You are a helpful assistant.")
+
+## Create chatbot with custom memory
+memory = LLMMemory.from_defaults(token_limit=5000)
+chatbot = Chatbot(system_prompt="You are a helpful assistant.", memory=memory.get_memory())
 
 ## Stream response (async)
 async for token in chatbot.astream_chat("Hello!"):
@@ -162,6 +205,15 @@ async for token in chatbot.astream_chat("Hello!"):
 ## Stream response (sync)
 for token in chatbot.stream_chat("Hello!"):
     print(token, end="", flush=True)
+
+## Non-streaming chat
+response = chatbot.chat("Hello!")
+
+## Reset conversation memory
+chatbot.reset()
+
+## Get chat history
+history = chatbot.get_chat_history()
 ```
 
 ### Using RAG
@@ -175,6 +227,10 @@ llm = LLMFactory.create()
 embedding = create_embedding_model()
 rag = Rag(llm=llm, embedding_model=embedding)
 
+## Load documents (optional, can be done separately)
+index = rag.load_document(document_path="./documents")
+
+## Query documents
 response = await rag.query(document_path="./documents", query="What is this about?")
 ```
 
@@ -184,14 +240,37 @@ response = await rag.query(document_path="./documents", query="What is this abou
 from core.llm.memory import LLMMemory
 from core.llm.model import LLMFactory
 from core.llm.embedding import create_embedding_model
+from llama_index.core.vector_stores import SimpleVectorStore
 
 llm = LLMFactory.create()
 embedding = create_embedding_model()
 
-## Create memory with all types
+## Create memory with default settings (short-term only)
+memory = LLMMemory.from_defaults(token_limit=3000)
+
+## Create memory with static content
+memory = LLMMemory.with_static_memory(
+    static_content="User preferences: prefers concise answers",
+    token_limit=3000
+)
+
+## Create memory with fact extraction
+memory = LLMMemory.with_fact_extraction(llm=llm, token_limit=3000)
+
+## Create memory with vector store
+vector_store = SimpleVectorStore()
+memory = LLMMemory.with_vector_memory(
+    embed_model=embedding,
+    vector_store=vector_store,
+    token_limit=3000
+)
+
+## Create memory with all types (requires vector store)
+vector_store = SimpleVectorStore()
 memory = LLMMemory.with_all_memory_types(
     llm=llm,
     embed_model=embedding,
+    vector_store=vector_store,
     static_content="User preferences: prefers concise answers",
     token_limit=3000
 )
@@ -199,6 +278,12 @@ memory = LLMMemory.with_all_memory_types(
 ## Use with agent or chatbot
 from core.llm.agent import Agent
 agent = Agent(llm=llm, memory=memory.get_memory())
+
+## Memory management
+memory.reset()  # Clear all memory
+messages = memory.get_all()  # Get all messages
+memory.put(message)  # Add a message
+retrieved = memory.get(**kwargs)  # Query messages
 ```
 
 ### Loading Prompts
@@ -220,16 +305,29 @@ prompt = prompt_loader.load_prompt_with_context(
 ### Using LLM Factory
 
 ```python
-from core.llm.model import LLMFactory
+from core.llm.model import LLMFactory, create_llm, LLMProvider
 
-## Create with default provider (from LLM_PROVIDER env var)
+## Create with default provider (from LLM_PROVIDER env var, defaults to "azure_openai")
 llm = LLMFactory.create()
 
 ## Create with specific provider
 llm = LLMFactory.create(provider="azure_openai")
+llm = LLMFactory.create(provider="siliconflow")
+
+## Backward compatibility function
+llm = create_llm()
 
 ## Get supported providers
-providers = LLMFactory.get_supported_providers()
+providers = LLMFactory.get_supported_providers()  # Returns ["azure_openai", "siliconflow"]
+
+## Register custom provider (advanced)
+from llama_index.core.llms.function_calling import FunctionCallingLLM
+
+def create_custom_llm() -> FunctionCallingLLM:
+    # ... implementation ...
+    pass
+
+LLMFactory.register_provider("custom_provider", create_custom_llm)
 ```
 
 ## Dependencies
