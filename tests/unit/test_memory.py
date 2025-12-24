@@ -10,6 +10,7 @@ from llama_index.core.llms.function_calling import FunctionCallingLLM
 from llama_index.core.memory import BaseMemoryBlock, Memory
 
 from core.llm.memory.memory import LLMMemory
+from tests.mock.mock_vector_store import MockVectorStore
 
 # Check if we have real LLM and embedding instances available
 HAS_REAL_LLM = bool(os.getenv("LLM_PROVIDER") or os.getenv("AZURE_OPENAI_KEY") or os.getenv("API_KEY"))
@@ -51,6 +52,12 @@ def sample_chat_messages():
         ChatMessage(role=MessageRole.USER, content="Tell me about Python."),
         ChatMessage(role=MessageRole.ASSISTANT, content="Python is a programming language."),
     ]
+
+
+@pytest.fixture
+def mock_vector_store():
+    """Fixture to create a mock vector store with stores_text=True."""
+    return MockVectorStore()
 
 
 class TestLLMMemoryInit:
@@ -140,16 +147,18 @@ class TestLLMMemoryWithFactExtraction:
 class TestLLMMemoryWithVectorMemory:
     """Test cases for with_vector_memory factory method."""
 
-    def test_with_vector_memory(self, real_embedding):
+    def test_with_vector_memory(self, real_embedding, mock_vector_store):
         """Test creating memory with vector memory block."""
-        memory = LLMMemory.with_vector_memory(embed_model=real_embedding)
+        memory = LLMMemory.with_vector_memory(embed_model=real_embedding, vector_store=mock_vector_store)
         assert memory.token_limit == 3000
         assert len(memory.memory_blocks) == 1
         assert isinstance(memory.get_memory(), Memory)
 
-    def test_with_vector_memory_custom_token_limit(self, real_embedding):
+    def test_with_vector_memory_custom_token_limit(self, real_embedding, mock_vector_store):
         """Test creating memory with vector memory and custom token limit."""
-        memory = LLMMemory.with_vector_memory(embed_model=real_embedding, token_limit=6000)
+        memory = LLMMemory.with_vector_memory(
+            embed_model=real_embedding, vector_store=mock_vector_store, token_limit=6000
+        )
         assert memory.token_limit == 6000
         assert len(memory.memory_blocks) == 1
 
@@ -157,30 +166,39 @@ class TestLLMMemoryWithVectorMemory:
 class TestLLMMemoryWithAllMemoryTypes:
     """Test cases for with_all_memory_types factory method."""
 
-    def test_with_all_memory_types_with_static(self, real_llm, real_embedding):
+    def test_with_all_memory_types_with_static(self, real_llm, real_embedding, mock_vector_store):
         """Test creating memory with all memory types including static content."""
         static_content = "User profile: Active investor"
         memory = LLMMemory.with_all_memory_types(
-            llm=real_llm, embed_model=real_embedding, static_content=static_content
+            llm=real_llm,
+            embed_model=real_embedding,
+            vector_store=mock_vector_store,
+            static_content=static_content,
         )
         assert memory.token_limit == 3000
         # Should have 3 memory blocks: static, fact extraction, and vector
         assert len(memory.memory_blocks) == 3
         assert isinstance(memory.get_memory(), Memory)
 
-    def test_with_all_memory_types_without_static(self, real_llm, real_embedding):
+    def test_with_all_memory_types_without_static(self, real_llm, real_embedding, mock_vector_store):
         """Test creating memory with all memory types without static content."""
-        memory = LLMMemory.with_all_memory_types(llm=real_llm, embed_model=real_embedding, static_content=None)
+        memory = LLMMemory.with_all_memory_types(
+            llm=real_llm, embed_model=real_embedding, vector_store=mock_vector_store, static_content=None
+        )
         assert memory.token_limit == 3000
         # Should have 2 memory blocks: fact extraction and vector (no static)
         assert len(memory.memory_blocks) == 2
         assert isinstance(memory.get_memory(), Memory)
 
-    def test_with_all_memory_types_custom_token_limit(self, real_llm, real_embedding):
+    def test_with_all_memory_types_custom_token_limit(self, real_llm, real_embedding, mock_vector_store):
         """Test creating memory with all memory types and custom token limit."""
         static_content = "Preferences: Detailed explanations"
         memory = LLMMemory.with_all_memory_types(
-            llm=real_llm, embed_model=real_embedding, static_content=static_content, token_limit=8000
+            llm=real_llm,
+            embed_model=real_embedding,
+            vector_store=mock_vector_store,
+            static_content=static_content,
+            token_limit=8000,
         )
         assert memory.token_limit == 8000
         assert len(memory.memory_blocks) == 3
@@ -267,19 +285,22 @@ class TestLLMMemoryIntegration:
         messages = memory.get_all()
         assert len(messages) >= len(sample_chat_messages)
 
-    def test_vector_memory_usage(self, real_embedding, sample_chat_messages):
+    def test_vector_memory_usage(self, real_embedding, sample_chat_messages, mock_vector_store):
         """Test vector memory with multiple messages."""
-        memory = LLMMemory.with_vector_memory(embed_model=real_embedding)
+        memory = LLMMemory.with_vector_memory(embed_model=real_embedding, vector_store=mock_vector_store)
         for msg in sample_chat_messages:
             memory.put(msg)
         messages = memory.get_all()
         assert len(messages) >= len(sample_chat_messages)
 
-    def test_all_memory_types_combined(self, real_llm, real_embedding, sample_chat_messages):
+    def test_all_memory_types_combined(self, real_llm, real_embedding, sample_chat_messages, mock_vector_store):
         """Test all memory types working together."""
         static_content = "User context: Financial advisor"
         memory = LLMMemory.with_all_memory_types(
-            llm=real_llm, embed_model=real_embedding, static_content=static_content
+            llm=real_llm,
+            embed_model=real_embedding,
+            vector_store=mock_vector_store,
+            static_content=static_content,
         )
         for msg in sample_chat_messages:
             memory.put(msg)

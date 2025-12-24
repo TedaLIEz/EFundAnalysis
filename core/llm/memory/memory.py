@@ -8,6 +8,7 @@ from llama_index.core.memory import BaseMemoryBlock, Memory
 if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
     from llama_index.core.llms.function_calling import FunctionCallingLLM
+    from llama_index.core.vector_stores.types import BasePydanticVectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ class LLMMemory:
     def with_vector_memory(
         cls,
         embed_model: "BaseEmbedding",
+        vector_store: "BasePydanticVectorStore",
         token_limit: int = 3000,
     ) -> "LLMMemory":
         """Create a memory instance with vector memory block.
@@ -122,6 +124,7 @@ class LLMMemory:
 
         Args:
             embed_model: Embedding model for vectorizing chat messages.
+            vector_store: Vector store instance. Must have stores_text=True.
             token_limit: Maximum number of tokens to keep in short-term memory.
                 Defaults to 3000.
 
@@ -130,11 +133,7 @@ class LLMMemory:
 
         """
         from llama_index.core.memory import VectorMemoryBlock
-        from llama_index.core.vector_stores import SimpleVectorStore
 
-        # VectorMemoryBlock requires a vector_store parameter
-        # FIXME: Value error, vector_store must store text to be used as a retrieval memory block [type=value_error, input_value=SimpleVectorStore(stores_...d={}, metadata_dict={})), input_type=SimpleVectorStore]
-        vector_store = SimpleVectorStore()
         vector_block = VectorMemoryBlock(embed_model=embed_model, vector_store=vector_store)
         return cls(memory_blocks=[vector_block], token_limit=token_limit)
 
@@ -143,6 +142,7 @@ class LLMMemory:
         cls,
         llm: "FunctionCallingLLM",
         embed_model: "BaseEmbedding",
+        vector_store: "BasePydanticVectorStore",
         static_content: str | None = None,
         token_limit: int = 3000,
     ) -> "LLMMemory":
@@ -154,6 +154,7 @@ class LLMMemory:
         Args:
             llm: LLM instance used for fact extraction.
             embed_model: Embedding model for vectorizing chat messages.
+            vector_store: Vector store instance. Must have stores_text=True.
             static_content: Optional static information to store in memory.
             token_limit: Maximum number of tokens to keep in short-term memory.
                 Defaults to 3000.
@@ -168,7 +169,6 @@ class LLMMemory:
             StaticMemoryBlock,
             VectorMemoryBlock,
         )
-        from llama_index.core.vector_stores import SimpleVectorStore
 
         memory_blocks: list[BaseMemoryBlock] = []
 
@@ -181,8 +181,6 @@ class LLMMemory:
         fact_block = FactExtractionMemoryBlock(llm=llm)
         memory_blocks.append(fact_block)
 
-        # VectorMemoryBlock requires a vector_store parameter
-        vector_store = SimpleVectorStore()
         vector_block = VectorMemoryBlock(embed_model=embed_model, vector_store=vector_store)
         memory_blocks.append(vector_block)
 

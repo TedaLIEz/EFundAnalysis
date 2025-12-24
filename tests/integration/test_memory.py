@@ -10,6 +10,7 @@ from core.llm.embedding.siliconflow import create_embedding_model
 from core.llm.memory.memory import LLMMemory
 from core.llm.model import LLMFactory
 from llama_index.core.base.llms.types import ChatMessage, MessageRole
+from tests.mock.mock_vector_store import MockVectorStore
 
 # Load environment variables
 load_dotenv()
@@ -109,7 +110,8 @@ def test_with_vector_memory():
     print("=" * 80)
 
     embed_model = create_embedding_model()
-    memory = LLMMemory.with_vector_memory(embed_model=embed_model)
+    vector_store = MockVectorStore()
+    memory = LLMMemory.with_vector_memory(embed_model=embed_model, vector_store=vector_store)
     assert memory.token_limit == 3000
     assert len(memory.memory_blocks) == 1
     print("✓ Successfully created memory with vector memory block")
@@ -140,10 +142,11 @@ def test_with_all_memory_types():
 
     llm = LLMFactory.create()
     embed_model = create_embedding_model()
+    vector_store = MockVectorStore()
     static_content = "Customer profile: High net worth individual, prefers active management"
 
     memory = LLMMemory.with_all_memory_types(
-        llm=llm, embed_model=embed_model, static_content=static_content
+        llm=llm, embed_model=embed_model, vector_store=vector_store, static_content=static_content
     )
     assert memory.token_limit == 3000
     # Should have 3 memory blocks: static, fact extraction, and vector
@@ -235,13 +238,14 @@ def test_memory_with_custom_token_limit():
 
     # Test vector memory with custom token limit
     embed_model = create_embedding_model()
-    memory4 = LLMMemory.with_vector_memory(embed_model=embed_model, token_limit=4000)
+    vector_store = MockVectorStore()
+    memory4 = LLMMemory.with_vector_memory(embed_model=embed_model, vector_store=vector_store, token_limit=4000)
     assert memory4.token_limit == 4000
     print("✓ Vector memory with custom token limit (4000)")
 
     # Test all memory types with custom token limit
     memory5 = LLMMemory.with_all_memory_types(
-        llm=llm, embed_model=embed_model, static_content="Test", token_limit=8000
+        llm=llm, embed_model=embed_model, vector_store=vector_store, static_content="Test", token_limit=8000
     )
     assert memory5.token_limit == 8000
     print("✓ All memory types with custom token limit (8000)")

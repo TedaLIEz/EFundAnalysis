@@ -1,0 +1,311 @@
+---
+applyTo: core/kyc/**/*
+description: This rule is helpful for building a Know-Your-Customer workflow based on LLM.
+---
+# KYC Workflow Development Guide for GitHub Copilot
+
+This guide covers building Know-Your-Customer (KYC) workflows using llama-index's workflow framework.
+
+## What is a KYC Workflow?
+
+Know-Your-Customer (KYC) workflows are automated processes used by financial institutions and businesses to verify the identity of their customers, assess risk, and ensure compliance with regulatory requirements. A typical KYC workflow includes:
+
+1. **Identity Verification**: Collect and verify customer identity documents (ID, passport, etc.)
+2. **Document Analysis**: Extract and validate information from submitted documents
+3. **Risk Assessment**: Evaluate customer risk profile based on various factors
+4. **Sanctions Screening**: Check against sanctions lists and watchlists
+5. **Adverse Media Check**: Search for negative news or adverse information
+6. **Decision Making**: Approve, reject, or flag for manual review based on collected data
+7. **Ongoing Monitoring**: Periodic re-verification and monitoring of customer activities
+
+## Key Principles
+
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; prefer classes for workflow definitions.
+- Use descriptive variable names with auxiliary verbs (e.g., `is_verified`, `has_risk_flag`, `requires_review`).
+- Use lowercase with underscores for directories and files (e.g., `core/kyc/workflows/identity_verification.py`).
+- Manage dependencies with `uv`, there is one `pyproject.toml` in the codebase.
+- Always run python commands under virtual environment by activating with `source venv/bin/activate`.
+
+## Dependencies
+
+### Required Packages
+
+- **llama-index-core** (~=0.14.8): Core llama-index functionality
+- **llama-index-workflows** (~=2.11.5): Workflow framework for building multi-step LLM workflows
+- **llama-index-llms-siliconflow** (~=0.4.2): SiliconFlow LLM integration (or Azure OpenAI)
+- **pydantic** (>=2.10.6): Data validation and settings management
+
+
+## Llama-Index Workflows Framework
+
+Llama-index workflows provide a declarative way to build multi-step LLM processes with:
+
+- **State management**: Automatic state passing between steps
+- **Conditional logic**: Branching based on step outputs
+- **Error handling**: Built-in retry and error recovery
+- **Observability**: Logging and monitoring capabilities
+
+**Important**: The exact API for llama-index workflows may vary by version. Always verify the actual imports and API by:
+
+1. Checking the installed package: `uv run python -c "import llama_index.workflows; help(llama_index.workflows)"`
+2. Reviewing the official documentation for your version
+3. Inspecting the package source if needed
+
+### Core Concepts
+
+1. **Workflow**: A class that defines the overall workflow structure
+2. **Step**: Individual processing units decorated with `@step` or `@workflow.step`
+3. **State**: Data passed between steps (typically Pydantic models or Event classes)
+4. **Conditional Steps**: Steps that execute based on conditions
+5. **Parallel Steps**: Steps that can run concurrently
+
+### Common Import Patterns
+
+The workflow framework may be imported from different locations depending on the version:
+
+```python
+# Pattern 1: From llama_index.workflows (if available)
+from llama_index.workflows import Workflow, step, StartEvent, StopEvent
+
+# Pattern 2: From llama_index.core.workflow
+from llama_index.core.workflow import Workflow, step, StartEvent, StopEvent
+
+# Pattern 3: From llama_index.workflows (newer versions)
+from llama_index.workflows import Workflow
+from llama_index.workflows.step import step
+```
+
+Always check which import pattern works for your installed version.
+
+### Basic Workflow Pattern
+
+**Note**: The import paths and exact API may differ. Verify the correct imports for your version.
+
+```python
+# Verify correct imports for your version - examples below show common patterns
+# Option 1: from llama_index.core.workflow import ...
+# Option 2: from llama_index.workflows import ...
+# Option 3: from llama_index.workflows.workflow import ...
+
+from llama_index.core.workflow import (
+    Event,
+    StartEvent,
+    StopEvent,
+    step,
+    Workflow,
+)
+from llama_index.core.llms.function_calling import FunctionCallingLLM
+from core.llm.model import create_llm
+from pydantic import BaseModel
+
+# Define state models
+class CustomerData(Event):
+    customer_id: str
+    name: str
+    document_type: str
+    document_data: dict
+
+class VerificationResult(Event):
+    is_verified: bool
+    confidence_score: float
+    extracted_data: dict
+    risk_flags: list[str]
+
+class RiskAssessment(Event):
+    risk_level: str  # "low", "medium", "high"
+    risk_score: float
+    requires_review: bool
+
+# Define workflow
+class KYCWorkflow(Workflow):
+    llm: FunctionCallingLLM = create_llm()
+
+    @step
+    async def verify_identity(self, ev: StartEvent) -> CustomerData:
+        """Step 1: Collect and verify customer identity."""
+        # Extract customer data from start event
+        customer_id = ev.customer_id
+        # ... processing logic ...
+        return CustomerData(
+            customer_id=customer_id,
+            name=ev.name,
+            document_type=ev.document_type,
+            document_data=ev.document_data
+        )
+
+    @step
+    async def analyze_documents(self, ev: CustomerData) -> VerificationResult:
+        """Step 2: Analyze submitted documents using LLM."""
+        prompt = f"""
+        Analyze the following customer document and extract key information:
+        Document Type: {ev.document_type}
+        Document Data: {ev.document_data}
+
+        Extract and verify:
+        1. Name matches: {ev.name}
+        2. Document authenticity
+        3. Expiry dates
+        4. Any suspicious patterns
+
+        Return a structured analysis.
+        """
+        response = await self.llm.acomplete(prompt)
+        # Parse response and create VerificationResult
+        return VerificationResult(
+            is_verified=True,
+            confidence_score=0.95,
+            extracted_data={},
+            risk_flags=[]
+        )
+
+    @step
+    async def assess_risk(self, ev: VerificationResult) -> RiskAssessment:
+        """Step 3: Assess customer risk profile."""
+        # Risk assessment logic
+        return RiskAssessment(
+            risk_level="low",
+            risk_score=0.2,
+            requires_review=False
+        )
+
+    @step
+    async def make_decision(self, ev: RiskAssessment) -> StopEvent:
+        """Step 4: Make final KYC decision."""
+        if ev.requires_review:
+            decision = "FLAG_FOR_REVIEW"
+        elif ev.risk_level == "high":
+            decision = "REJECT"
+        else:
+            decision = "APPROVE"
+
+        return StopEvent(result={
+            "decision": decision,
+            "risk_level": ev.risk_level,
+            "risk_score": ev.risk_score
+        })
+```
+
+### Advanced Patterns
+
+#### Conditional Steps
+
+```python
+from llama_index.core.workflow import step, Workflow
+
+class ConditionalKYCWorkflow(Workflow):
+    @step
+    async def check_sanctions(self, ev: CustomerData) -> VerificationResult:
+        # Check sanctions list
+        is_on_sanctions_list = False  # Your logic here
+        return VerificationResult(
+            is_verified=not is_on_sanctions_list,
+            confidence_score=1.0 if not is_on_sanctions_list else 0.0,
+            extracted_data={},
+            risk_flags=["SANCTIONS_MATCH"] if is_on_sanctions_list else []
+        )
+
+    @step
+    async def enhanced_review(self, ev: VerificationResult) -> RiskAssessment:
+        # Only runs if verification failed
+        if not ev.is_verified:
+            # Enhanced review logic
+            pass
+        return RiskAssessment(risk_level="high", risk_score=0.9, requires_review=True)
+```
+
+#### Using Tools and Agents
+
+```python
+from llama_index.core.workflow import step, Workflow
+from llama_index.core.tools import FunctionTool
+from core.llm.agent import Agent
+
+class KYCWorkflowWithTools(Workflow):
+    llm = create_llm()
+
+    def __init__(self):
+        super().__init__()
+        # Create tools for document verification
+        self.verification_tool = FunctionTool.from_defaults(
+            fn=self.verify_document_api,
+            name="verify_document"
+        )
+        self.agent = Agent(llm=self.llm, tools=[self.verification_tool])
+
+    def verify_document_api(self, document_id: str) -> dict:
+        """Tool function for document verification."""
+        # Your API call logic
+        return {"verified": True, "confidence": 0.95}
+
+    @step
+    async def verify_with_agent(self, ev: StartEvent) -> CustomerData:
+        """Use agent with tools for verification."""
+        prompt = f"Verify document {ev.document_id} using the verify_document tool"
+        result = self.agent.run(prompt)
+        # Process result
+        return CustomerData(...)
+```
+
+## Project Structure
+
+```text
+core/kyc/
+├── __init__.py
+├── workflows/
+│   ├── __init__.py
+│   ├── kyc_workflow.py          # Main KYC workflow
+│   ├── identity_verification.py # Identity verification step
+│   ├── risk_assessment.py       # Risk assessment step
+│   └── decision_engine.py       # Decision making step
+├── models/
+│   ├── __init__.py
+│   ├── customer.py              # Customer data models
+│   └── verification.py          # Verification result models
+└── tools/
+    ├── __init__.py
+    ├── document_analyzer.py     # Document analysis tools
+    └── sanctions_checker.py     # Sanctions screening tools
+```
+
+## Error Handling
+
+- Handle errors at the beginning of workflow steps
+- Use early returns for error conditions
+- Implement proper error logging with context
+- Return structured error events that can be handled by downstream steps
+- Use try-except blocks for external API calls
+
+```python
+@step
+async def verify_identity(self, ev: StartEvent) -> CustomerData | ErrorEvent:
+    try:
+        # Verification logic
+        return CustomerData(...)
+    except Exception as e:
+        logger.error(f"Identity verification failed: {e}", extra={"customer_id": ev.customer_id})
+        return ErrorEvent(error_type="VERIFICATION_FAILED", message=str(e))
+```
+
+## Best Practices
+
+1. **State Models**: Use Pydantic models for all event/state objects to ensure type safety
+2. **Step Naming**: Use descriptive, action-oriented names (e.g., `verify_identity`, `assess_risk`)
+3. **Async Operations**: All steps should be async to handle I/O operations efficiently
+4. **Idempotency**: Design steps to be idempotent where possible
+5. **Logging**: Log important state transitions and decisions
+6. **Testing**: Write unit tests for individual steps and integration tests for workflows
+7. **Prompt Engineering**: Use clear, structured prompts for LLM steps
+8. **Validation**: Validate inputs at workflow entry points
+
+## Integration with Existing Code
+
+- Use `create_llm()` from `core.llm.model` for LLM instances
+- Follow patterns from `core/llm/agent/agent.py` for agent integration
+- Use `core/llm/prompt/prompt_loader.py` for loading prompt templates
+
+## References
+
+- [Llama-index Workflows Documentation](https://docs.llamaindex.ai/en/stable/module_guides/deploying/workflows/)
+- [Llama-index Core Documentation](https://docs.llamaindex.ai/en/stable/)
+- [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/)

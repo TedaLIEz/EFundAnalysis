@@ -1,0 +1,246 @@
+---
+applyTo: api/**/*,app.py,extensions/**/*
+description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
+---
+# FastAPI and WebSocket Development Guide for GitHub Copilot
+
+This guide covers FastAPI and WebSocket development patterns for the FinWeave project.
+
+## Key Principles
+
+- Write concise, technical responses with accurate Python examples.
+- Use functional, declarative programming; prefer classes only when necessary (e.g., for complex resource management).
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., api/observability/health.py).
+- Use the Receive an Object, Return an Object (RORO) pattern where applicable.
+- Manage runtime within python virtual environment, this has been already included in the @venv folder.
+- Manage dependencies with uv, there is one [pyproject.toml](mdc:pyproject.toml) in the codebase.
+- Always run the command with uv.
+
+## Python/FastAPI
+
+- Use type hints for all function signatures and method definitions.
+- Use Pydantic models for input validation and response serialization.
+- File structure: Routers in api/ subdirectories, organized by domain (e.g., api/observability/, api/funds/).
+- Use FastAPI APIRouter for organizing endpoints.
+- Implement HTTP methods (get, post, put, delete, patch) as route decorators.
+- Return dicts directly from route handlers (FastAPI handles JSON serialization).
+- Use http.HTTPStatus enum for status codes instead of magic numbers.
+- Register routers using app.include_router(router) in app.py or extension modules.
+
+## FastAPI Router Patterns
+
+```python
+from fastapi import APIRouter, HTTPException
+from http import HTTPStatus
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api", tags=["example"])
+
+@router.get("/items")
+def get_items():
+    """Handle GET requests."""
+    try:
+        # Validation and business logic
+        return {"items": []}
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
+@router.post("/items")
+def create_item(item: ItemModel):  # ItemModel is a Pydantic model
+    """Handle POST requests."""
+    # FastAPI automatically validates item using Pydantic
+    return {"id": 1, "message": "Created"}
+```
+
+## WebSocket Connection Guidelines
+
+- Use python-socketio (socketio) for WebSocket support with FastAPI.
+- Initialize AsyncServer: `sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")`.
+- Wrap with ASGI app: `socket_app = socketio.ASGIApp(sio)`.
+- Mount Socket.IO app at `/socket.io` path: `app.mount("/socket.io", socket_app)`.
+- Use @sio.on() decorator for WebSocket event handlers.
+- All handlers must be async functions.
+- Implement proper connection/disconnection handlers.
+- Use rooms for organizing WebSocket connections.
+- Emit events using await sio.emit() or await sio.send() for broadcasting.
+- Handle errors gracefully in WebSocket event handlers.
+- Use type hints for WebSocket event handler functions.
+- Session ID (sid) is passed as the first parameter to handlers.
+
+## WebSocket Patterns
+
+```python
+import socketio
+from fastapi import FastAPI
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
+app = FastAPI()
+
+# Create Socket.IO async server
+sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")
+
+# Wrap with ASGI app and mount
+socket_app = socketio.ASGIApp(sio)
+app.mount("/socket.io", socket_app)
+
+@sio.on("connect")
+async def handle_connect(sid: str, environ: dict, auth: dict | None = None):
+    """Handle WebSocket connection."""
+    logger.info(f"Client connected: {sid}")
+    await sio.emit("connected", {"message": "Connected successfully"}, room=sid)
+
+@sio.on("disconnect")
+async def handle_disconnect(sid: str):
+    """Handle WebSocket disconnection."""
+    logger.info(f"Client disconnected: {sid}")
+
+@sio.on("join")
+async def handle_join(sid: str, data: dict):
+    """Handle joining a room."""
+    room = data.get("room")
+    if room:
+        await sio.enter_room(sid, room)
+        await sio.emit("joined", {"room": room}, room=room)
+
+@sio.on("message")
+async def handle_message(sid: str, data: dict):
+    """Handle incoming WebSocket message."""
+    try:
+        # Process message
+        message = data.get("message", "")
+        room = data.get("room")
+        if room:
+            await sio.emit("response", {"message": message}, room=room)
+        else:
+            await sio.emit("response", {"message": message}, room=sid)
+    except Exception as e:
+        logger.exception(f"Error handling message: {e}")
+        await sio.emit("error", {"error": "Failed to process message"}, room=sid)
+```
+
+## Error Handling and Validation
+
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions/methods.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Place the happy path last in the function for improved readability.
+  - Avoid unnecessary else statements; use the if-return pattern instead.
+  - Use guard clauses to handle preconditions and invalid states early.
+  - Implement proper error logging with logger.error() or logger.exception().
+  - Return user-friendly error messages with appropriate HTTP status codes.
+  - Use custom exception classes for domain-specific errors.
+- For FastAPI: Raise HTTPException for error responses: `raise HTTPException(status_code=HTTPStatus.XXX, detail="message")`.
+- For WebSocket: Emit error events using `await sio.emit("error", {"error": "message"}, room=sid)`.
+- Use Pydantic models for request validation (automatic with FastAPI).
+
+## Request Parsing and Validation
+
+- Use Pydantic models for request body validation (automatic with FastAPI).
+- Use FastAPI's Query, Path, and Body dependencies for query parameters, path parameters, and request bodies.
+- Validate required fields using Pydantic model fields (required=True, Optional, etc.).
+- Return 400 Bad Request for validation errors (handled automatically by FastAPI).
+- Use request.query_params for query parameters and request.form() for form data when needed.
+
+## Dependencies
+
+- FastAPI >= 0.124.4
+- python-socketio >= 5.15.0 (for WebSocket support)
+- uvicorn >= 0.38.0 (ASGI server)
+- Pydantic v2 (for data validation)
+- SQLAlchemy 2.0 (if using ORM features)
+
+## FastAPI Application Structure
+
+- Initialize FastAPI app in app.py: `app = FastAPI()`.
+- Create routers using `APIRouter(prefix="/api", tags=["tag"])`.
+- Initialize SocketIO if using WebSocket: `sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")`.
+- Mount Socket.IO app: `app.mount("/socket.io", socketio.ASGIApp(sio))`.
+- Register routers using `app.include_router(router)`.
+- Use FastAPI exception handlers for global error handling: `@app.exception_handler(Exception)`.
+- Organize routers in api/ subdirectories by domain.
+- Use __init__.py files to organize package structure.
+
+## FastAPI-Specific Guidelines
+
+- Use router decorators (@router.get, @router.post, etc.) for RESTful endpoints.
+- Use Pydantic models for request/response validation and serialization.
+- Use FastAPI's dependency injection system for shared logic (database sessions, authentication, etc.).
+- Use Python's logging: `logger = logging.getLogger(__name__)`.
+- Configure CORS using FastAPI's CORSMiddleware: `app.add_middleware(CORSMiddleware, ...)`.
+- Use async/await for I/O operations to improve performance.
+- Use FastAPI's background tasks for async operations that don't need to block the response.
+
+## Performance Optimization
+
+- Use async/await for I/O operations to avoid blocking.
+- Implement caching for static and frequently accessed data using tools like Redis.
+- Use connection pooling for database connections.
+- Optimize JSON serialization by returning appropriate data structures (FastAPI handles this automatically).
+- Use lazy loading techniques for large datasets.
+- For WebSocket: Use rooms to broadcast only to relevant clients instead of broadcasting to all.
+- Consider using message queues (e.g., Redis with SocketIO) for scaling WebSocket across multiple workers.
+
+## Security Best Practices
+
+- Validate and sanitize all user inputs (handled automatically by Pydantic).
+- Use HTTPS in production.
+- Implement proper authentication and authorization (e.g., OAuth2, JWT tokens).
+- Use CORS appropriately; avoid allowing all origins in production.
+- Sanitize WebSocket messages before processing.
+- Implement rate limiting for API endpoints.
+- Use environment variables for sensitive configuration (e.g., secrets, API keys).
+
+## How to run the test?
+
+You should always run the test for your code. You can run the following commands to verify:
+
+```bash
+uv run python -m pytest tests/unit -v
+```
+
+You should fix your code if you found your code fail the test cases.
+
+## Key Conventions
+
+1. Organize FastAPI routers in api/ subdirectories by domain (e.g., api/observability/, api/funds/).
+2. Each router should handle one resource type with appropriate HTTP methods.
+3. Use consistent error response format: {"error": "message"} for errors, {"data": ...} for success.
+4. Register all routers in app.py or extension modules using app.include_router().
+5. Use HTTPStatus enum for status codes consistently.
+6. For WebSocket: Use descriptive event names and document them clearly.
+7. Handle WebSocket connection lifecycle properly (connect, disconnect, error events).
+8. Use logging consistently throughout the application.
+9. Structure routes and resources clearly to optimize readability and maintainability.
+
+## Example Project Structure
+
+```text
+api/
+  __init__.py
+  observability/
+    __init__.py
+    health.py          # Health check router
+  funds/
+    __init__.py
+    fund_router.py     # Fund-related routers
+app.py                 # FastAPI app, SocketIO initialization, router registration
+core/
+  sockets/
+    handlers.py        # WebSocket event handlers
+```
+
+Refer to FastAPI and python-socketio documentation for best practices and advanced patterns.
