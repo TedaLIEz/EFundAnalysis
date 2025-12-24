@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from llama_index.core.chat_engine import SimpleChatEngine
 from llama_index.core.llms.function_calling import FunctionCallingLLM
-from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.memory import BaseMemory, Memory
 
 if TYPE_CHECKING:
     from llama_index.core.chat_engine.types import AgentChatResponse, StreamingAgentChatResponse
@@ -19,18 +19,25 @@ logger = logging.getLogger(__name__)
 class Chatbot:
     """Basic chatbot with conversation memory."""
 
-    def __init__(self, llm: FunctionCallingLLM | None = None, system_prompt: str | None = None):
+    def __init__(
+        self,
+        llm: FunctionCallingLLM | None = None,
+        memory: BaseMemory | None = None,
+        system_prompt: str | None = None,
+    ):
         """Initialize the chatbot with an LLM.
 
         Args:
             llm: Optional FunctionCallingLLM instance. If not provided, one will be created
                 using the LLMFactory with the provider specified by LLM_PROVIDER environment variable.
+            memory: Optional Memory instance. If not provided, one will be created
+                using ChatMemoryBuffer.from_defaults().
             system_prompt: Optional system prompt for the chatbot.
                 If not provided, the chatbot will use the default system prompt.
 
         """
         self.llm = llm or LLMFactory.create()
-        self.memory = ChatMemoryBuffer.from_defaults()
+        self.memory = memory or Memory.from_defaults()
         self.chat_engine = SimpleChatEngine.from_defaults(llm=self.llm, system_prompt=system_prompt, memory=self.memory)
 
     def stream_chat(self, message: str) -> Generator[str, None]:
@@ -91,8 +98,7 @@ class Chatbot:
 
     def reset(self) -> None:
         """Reset the conversation memory."""
-        self.memory = ChatMemoryBuffer.from_defaults()
-        self.chat_engine = SimpleChatEngine.from_defaults(llm=self.llm, memory=self.memory)
+        self.memory.reset()
 
     def get_chat_history(self) -> list[dict[str, str]]:
         """Get the current chat history.
