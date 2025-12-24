@@ -1,10 +1,13 @@
 ---
-applyTo: prompt/**/*.liquid
 description: This rule is helpful for creating LLM prompt template based on Liquid syntax
+applyTo: "prompt/**/*.liquid"
 ---
 # Liquid Prompt Template Guide for GitHub Copilot
 
-This guide is for creating LLM prompt templates using Liquid syntax.
+This guide covers Liquid template syntax and prompt management for the FinWeave project.
+
+
+You are an expert in creating LLM prompt templates using Liquid syntax. Liquid is a template language that allows you to create dynamic, reusable prompts with variables, conditionals, loops, and filters.
 
 ## Key Principles
 
@@ -176,7 +179,7 @@ Assistant: {{ message.content }}
 Current message:
 User: {{ current_message | strip }}
 
-A:
+Assistant:
 ```
 
 ## Best Practices

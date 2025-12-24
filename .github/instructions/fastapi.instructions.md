@@ -1,12 +1,15 @@
 ---
-applyTo: api/**/*,app.py,extensions/**/*
-description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
+description: This rule provides guidelines for FastAPI API endpoints and extension modules. Refer to this rule when writing code in the `api/` or `extensions/` folders.
+applyTo: "api/**/*.py,extensions/**/*.py"
 ---
 # FastAPI and WebSocket Development Guide for GitHub Copilot
 
 This guide covers FastAPI and WebSocket development patterns for the FinWeave project.
 
-## Key Principles
+
+You are an expert in Python, FastAPI, and WebSocket development for scalable API services.
+
+Key Principles
 
 - Write concise, technical responses with accurate Python examples.
 - Use functional, declarative programming; prefer classes only when necessary (e.g., for complex resource management).
@@ -18,7 +21,7 @@ This guide covers FastAPI and WebSocket development patterns for the FinWeave pr
 - Manage dependencies with uv, there is one [pyproject.toml](mdc:pyproject.toml) in the codebase.
 - Always run the command with uv.
 
-## Python/FastAPI
+Python/FastAPI
 
 - Use type hints for all function signatures and method definitions.
 - Use Pydantic models for input validation and response serialization.
@@ -29,7 +32,7 @@ This guide covers FastAPI and WebSocket development patterns for the FinWeave pr
 - Use http.HTTPStatus enum for status codes instead of magic numbers.
 - Register routers using app.include_router(router) in app.py or extension modules.
 
-## FastAPI Router Patterns
+FastAPI Router Patterns
 
 ```python
 from fastapi import APIRouter, HTTPException
@@ -63,7 +66,7 @@ def create_item(item: ItemModel):  # ItemModel is a Pydantic model
     return {"id": 1, "message": "Created"}
 ```
 
-## WebSocket Connection Guidelines
+WebSocket Connection Guidelines
 
 - Use python-socketio (socketio) for WebSocket support with FastAPI.
 - Initialize AsyncServer: `sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")`.
@@ -78,7 +81,7 @@ def create_item(item: ItemModel):  # ItemModel is a Pydantic model
 - Use type hints for WebSocket event handler functions.
 - Session ID (sid) is passed as the first parameter to handlers.
 
-## WebSocket Patterns
+WebSocket Patterns
 
 ```python
 import socketio
@@ -87,13 +90,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
+## Create FastAPI app
 app = FastAPI()
 
-# Create Socket.IO async server
+## Create Socket.IO async server
 sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi")
 
-# Wrap with ASGI app and mount
+## Wrap with ASGI app and mount
 socket_app = socketio.ASGIApp(sio)
 app.mount("/socket.io", socket_app)
 
@@ -132,7 +135,7 @@ async def handle_message(sid: str, data: dict):
         await sio.emit("error", {"error": "Failed to process message"}, room=sid)
 ```
 
-## Error Handling and Validation
+Error Handling and Validation
 
 - Prioritize error handling and edge cases:
   - Handle errors and edge cases at the beginning of functions/methods.
@@ -147,7 +150,7 @@ async def handle_message(sid: str, data: dict):
 - For WebSocket: Emit error events using `await sio.emit("error", {"error": "message"}, room=sid)`.
 - Use Pydantic models for request validation (automatic with FastAPI).
 
-## Request Parsing and Validation
+Request Parsing and Validation
 
 - Use Pydantic models for request body validation (automatic with FastAPI).
 - Use FastAPI's Query, Path, and Body dependencies for query parameters, path parameters, and request bodies.
@@ -155,7 +158,7 @@ async def handle_message(sid: str, data: dict):
 - Return 400 Bad Request for validation errors (handled automatically by FastAPI).
 - Use request.query_params for query parameters and request.form() for form data when needed.
 
-## Dependencies
+Dependencies
 
 - FastAPI >= 0.124.4
 - python-socketio >= 5.15.0 (for WebSocket support)
@@ -163,7 +166,7 @@ async def handle_message(sid: str, data: dict):
 - Pydantic v2 (for data validation)
 - SQLAlchemy 2.0 (if using ORM features)
 
-## FastAPI Application Structure
+FastAPI Application Structure
 
 - Initialize FastAPI app in app.py: `app = FastAPI()`.
 - Create routers using `APIRouter(prefix="/api", tags=["tag"])`.
@@ -174,7 +177,7 @@ async def handle_message(sid: str, data: dict):
 - Organize routers in api/ subdirectories by domain.
 - Use __init__.py files to organize package structure.
 
-## FastAPI-Specific Guidelines
+FastAPI-Specific Guidelines
 
 - Use router decorators (@router.get, @router.post, etc.) for RESTful endpoints.
 - Use Pydantic models for request/response validation and serialization.
@@ -184,7 +187,7 @@ async def handle_message(sid: str, data: dict):
 - Use async/await for I/O operations to improve performance.
 - Use FastAPI's background tasks for async operations that don't need to block the response.
 
-## Performance Optimization
+Performance Optimization
 
 - Use async/await for I/O operations to avoid blocking.
 - Implement caching for static and frequently accessed data using tools like Redis.
@@ -194,7 +197,7 @@ async def handle_message(sid: str, data: dict):
 - For WebSocket: Use rooms to broadcast only to relevant clients instead of broadcasting to all.
 - Consider using message queues (e.g., Redis with SocketIO) for scaling WebSocket across multiple workers.
 
-## Security Best Practices
+Security Best Practices
 
 - Validate and sanitize all user inputs (handled automatically by Pydantic).
 - Use HTTPS in production.
@@ -204,7 +207,7 @@ async def handle_message(sid: str, data: dict):
 - Implement rate limiting for API endpoints.
 - Use environment variables for sensitive configuration (e.g., secrets, API keys).
 
-## How to run the test?
+How to run the test?
 
 You should always run the test for your code. You can run the following commands to verify:
 
@@ -214,7 +217,7 @@ uv run python -m pytest tests/unit -v
 
 You should fix your code if you found your code fail the test cases.
 
-## Key Conventions
+Key Conventions
 
 1. Organize FastAPI routers in api/ subdirectories by domain (e.g., api/observability/, api/funds/).
 2. Each router should handle one resource type with appropriate HTTP methods.
@@ -226,7 +229,7 @@ You should fix your code if you found your code fail the test cases.
 8. Use logging consistently throughout the application.
 9. Structure routes and resources clearly to optimize readability and maintainability.
 
-## Example Project Structure
+Example Project Structure
 
 ```text
 api/

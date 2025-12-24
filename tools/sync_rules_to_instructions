@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+"""
+Script to sync content from .cursor/rules/*.mdc to .github/instructions/*.instructions.md
+Converts Cursor rules format to GitHub Copilot custom instructions format.
+"""
+
+import re
+import os
+from pathlib import Path
+from typing import Dict, Tuple
+
+
+# Mapping from source .mdc files to target .instructions.md files
+FILE_MAPPING: Dict[str, str] = {
+    "python-test.mdc": "test.instructions.md",
+    "python-data-akshare.mdc": "akshre.instructions.md",  # Note: typo preserved in existing file
+    "python-api-rule.mdc": "fastapi.instructions.md",
+    "overall-rule.mdc": "overall.instructions.md",
+    "python-llm-rule.mdc": "llm.instructions.md",
+    "python-kyc-module.mdc": "kyc.instructions.md",
+    "liquid-prompt.mdc": "liquid-prompt.instructions.md",
+}
+
+
+def parse_frontmatter(content: str) -> Tuple[Dict[str, str], str]:
+    """Parse frontmatter from markdown content."""
+    frontmatter_pattern = r"^---\n(.*?)\n---\n(.*)$"
+    match = re.match(frontmatter_pattern, content, re.DOTALL)
+
+    if not match:
+        return {}, content
+
+    frontmatter_text = match.group(1)
+    body = match.group(2)
+
+    frontmatter = {}
+    for line in frontmatter_text.split("\n"):
+        if ":" in line:
+            key, value = line.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            frontmatter[key] = value
+
+    return frontmatter, body
+
+
+def convert_frontmatter(frontmatter: Dict[str, str], source_filename: str) -> Dict[str, str]:
+    """Convert Cursor frontmatter to GitHub Copilot frontmatter."""
+    new_frontmatter = {}
+
+    # Convert description - use existing or add default
+    if "description" in frontmatter:
+        new_frontmatter["description"] = frontmatter["description"]
+    else:
+        # Add default descriptions for files that don't have one
+        default_descriptions = {
+            "overall-rule.mdc": "Overall project rules and conventions for FinWeave",
+        }
+        if source_filename in default_descriptions:
+            new_frontmatter["description"] = default_descriptions[source_filename]
+
+    # Convert globs/alwaysApply to applyTo
+    if frontmatter.get("alwaysApply") == "true":
+        new_frontmatter["applyTo"] = '"**/*"'
+    elif "globs" in frontmatter:
+        # Keep comma-separated globs format for GitHub Copilot (e.g., "**/*.ts,**/*.tsx")
+        globs = frontmatter["globs"]
+        # Keep the comma-separated format, wrap in double quotes
+        apply_to = globs.strip()
+        new_frontmatter["applyTo"] = f'"{apply_to}"'
+
+    return new_frontmatter
+
+
+def format_frontmatter(frontmatter: Dict[str, str]) -> str:
+    """Format frontmatter as YAML."""
+    lines = ["---"]
+    for key, value in frontmatter.items():
+        lines.append(f"{key}: {value}")
+    lines.append("---")
+    return "\n".join(lines)
+
+
+def convert_content(body: str, source_filename: str) -> str:
+    """Convert content body to GitHub Copilot format."""
+    # Remove leading/trailing whitespace
+    body = body.strip()
+
+    # Determine title and intro based on source filename
+    title_map = {
+        "python-test.mdc": ("Python Testing Guide for GitHub Copilot", "This guide covers writing test cases in Python with pytest for the FinWeave project."),
+        "python-data-akshare.mdc": ("Data Provider Guide for GitHub Copilot", "This guide covers building data providers using akshare library for LlamaIndex FunctionTool."),
+        "python-api-rule.mdc": ("FastAPI and WebSocket Development Guide for GitHub Copilot", "This guide covers FastAPI and WebSocket development patterns for the FinWeave project."),
+        "overall-rule.mdc": ("GitHub Copilot Instructions for FinWeave Project", ""),
+        "python-llm-rule.mdc": ("LLM and AI Agent Development Guide for GitHub Copilot", "This guide covers LLM, agent, RAG, and related AI functionality for the FinWeave project."),
+        "python-kyc-module.mdc": ("KYC Workflow Development Guide for GitHub Copilot", "This guide covers KYC workflow and customer management for the FinWeave project."),
+        "liquid-prompt.mdc": ("Liquid Prompt Template Guide for GitHub Copilot", "This guide covers Liquid template syntax and prompt management for the FinWeave project."),
+    }
+
+    title, intro = title_map.get(source_filename, ("Development Guide for GitHub Copilot", ""))
+
+    lines = body.split("\n")
+
+    # Check if content already starts with a header
+    has_existing_title = lines and lines[0].startswith("#")
+
+    if has_existing_title:
+        # Content already has a title
+        # For overall rule, convert first-level to second-level, keep original text
+        if source_filename == "overall-rule.mdc":
+            if lines[0].startswith("# ") and not lines[0].startswith("## "):
+                lines[0] = lines[0].replace("# ", "## ", 1)
+        else:
+            # For other files, replace with standardized title
+            lines[0] = f"# {title}"
+            if intro:
+                lines.insert(1, "")
+                lines.insert(2, intro)
+                lines.insert(3, "")
+    else:
+        # No existing title, add new one
+        new_lines = [f"# {title}"]
+        if intro:
+            new_lines.extend(["", intro, ""])
+        lines = new_lines + lines
+
+    # Convert all first-level headers (#) to second-level (##), except the main title (first line)
+    converted_lines = []
+    for i, line in enumerate(lines):
+        if i == 0:
+            # Keep main title as-is (first-level)
+            converted_lines.append(line)
+        elif line.startswith("# ") and not line.startswith("## "):
+            # Convert first-level header to second-level
+            converted_lines.append(line.replace("# ", "## ", 1))
+        else:
+            converted_lines.append(line)
+
+    return "\n".join(converted_lines)
+
+
+def convert_file(source_path: Path, target_path: Path) -> None:
+    """Convert a single .mdc file to .instructions.md format."""
+    print(f"Converting {source_path.name} -> {target_path.name}")
+
+    # Read source file
+    content = source_path.read_text(encoding="utf-8")
+
+    # Parse frontmatter and body
+    frontmatter, body = parse_frontmatter(content)
+
+    # Convert frontmatter
+    new_frontmatter = convert_frontmatter(frontmatter, source_path.name)
+
+    # Convert content
+    new_body = convert_content(body, source_path.name)
+
+    # Combine frontmatter and body
+    frontmatter_str = format_frontmatter(new_frontmatter)
+    new_content = f"{frontmatter_str}\n{new_body}\n"
+
+    # Write to target file
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(new_content, encoding="utf-8")
+
+    print(f"  ✓ Written to {target_path}")
+
+
+def main() -> None:
+    """Main function to sync all rule files."""
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+
+    rules_dir = project_root / ".cursor" / "rules"
+    instructions_dir = project_root / ".github" / "instructions"
+
+    if not rules_dir.exists():
+        print(f"Error: Rules directory not found: {rules_dir}")
+        return
+
+    instructions_dir.mkdir(parents=True, exist_ok=True)
+
+    print("Syncing rules to GitHub Copilot instructions...")
+    print(f"Source: {rules_dir}")
+    print(f"Target: {instructions_dir}")
+    print()
+
+    # Process each file in the mapping
+    for source_filename, target_filename in FILE_MAPPING.items():
+        source_path = rules_dir / source_filename
+        target_path = instructions_dir / target_filename
+
+        if not source_path.exists():
+            print(f"Warning: Source file not found: {source_path}")
+            continue
+
+        try:
+            convert_file(source_path, target_path)
+        except Exception as e:
+            print(f"Error converting {source_filename}: {e}")
+            import traceback
+            traceback.print_exc()
+
+    print()
+    print("Done!")
+
+
+if __name__ == "__main__":
+    main()

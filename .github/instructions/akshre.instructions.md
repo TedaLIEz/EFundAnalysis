@@ -1,14 +1,17 @@
 ---
-applyTo: data_provider/**/*
-description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
+description: This rule provides guidelines for building data providers using akshare library for LlamaIndex FunctionTool. Refer to this rule when writing code in the `data_provider/` folder.
+applyTo: "data_provider/**/*.py"
 ---
-# Akshare Data Provider Guide for GitHub Copilot
+# Data Provider Guide for GitHub Copilot
 
-This guide covers creating data provider functions using the akshare library for use with LlamaIndex FunctionTool.
+This guide covers building data providers using akshare library for LlamaIndex FunctionTool.
 
-**IMPORTANT: After writing any function in `data_provider`, you MUST create corresponding test cases in `tests/unit/`.**
 
-## Key Principles
+You are an expert in Python, writing a scalable API wrapper with the akshare library for use with LlamaIndex FunctionTool.
+
+**IMPORTANT: After writing any function in `data_provider`, you MUST create corresponding test cases in `tests/unit/`. See "Testing Requirements" section below for details.**
+
+Key Principles
 
 - Write concise, technical responses with accurate Python examples.
 - Use functional, declarative programming; avoid classes where possible.
@@ -21,7 +24,7 @@ This guide covers creating data provider functions using the akshare library for
 - Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
 - Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
 
-## FunctionTool Compatibility Requirements
+FunctionTool Compatibility Requirements
 
 **CRITICAL: All functions in `data_provider` must be compatible with LlamaIndex `FunctionTool.from_defaults()`.**
 
@@ -73,7 +76,7 @@ This guide covers creating data provider functions using the akshare library for
    - Prefix with `get_` for data retrieval functions
    - Use clear, domain-specific names (stock, fund, bond, etc.)
 
-## Error Handling and Validation
+Error Handling and Validation
 
 - Prioritize error handling and edge cases:
   - Handle errors and edge cases at the beginning of functions.
@@ -86,7 +89,7 @@ This guide covers creating data provider functions using the akshare library for
   - Always return `None` on error (don't raise exceptions) - let the agent handle error responses
   - Log errors using `logger.error()` or `logger.exception()` for debugging
 
-## Python/Akshare Integration
+Python/Akshare Integration
 
 - **API Documentation**: Refer to [akshare documentation](https://akshare.akfamily.xyz/data/index.html) as the API documentation.
   - **Stock Functions**: Reference [akshare stock documentation](https://akshare.akfamily.xyz/data/stock/stock.html) and its sub-pages for stock-related function implementations.
@@ -102,7 +105,7 @@ This guide covers creating data provider functions using the akshare library for
 - **Import Pattern**: Import akshare as `import akshare as ak  # type: ignore`
 - **Import pandas**: Always import pandas for DataFrame operations: `import pandas as pd`
 
-## Finding and Verifying Akshare Functions
+Finding and Verifying Akshare Functions
 
 **CRITICAL: Always verify akshare function availability before implementing wrapper functions.**
 
@@ -141,7 +144,7 @@ This guide covers creating data provider functions using the akshare library for
    - Use documentation to find the exact function name matching your needs
    - Prefer functions that return structured data (DataFrame) over raw HTML/JSON
 
-## Data Provider Module Structure
+Data Provider Module Structure
 
 - **File Organization**:
   - `data_provider/stock.py`: Stock-related functions (A-shares, US stocks, etc.)
@@ -163,7 +166,7 @@ This guide covers creating data provider functions using the akshare library for
   ]
   ```
 
-## Example: Stock Data Function
+Example: Stock Data Function
 
 ```python
 """Stock data provider functions using akshare."""
@@ -243,7 +246,16 @@ def get_stock_realtime_quote(symbol: str) -> dict[str, Any] | None:
         return None
 ```
 
-## Best Practices for FunctionTool Integration
+Example: Fund Data Function (Reference Implementation)
+
+See `data_provider/fund.py` for reference implementation. Key points:
+
+- Returns `dict[str, Any] | None` for single-record results
+- Returns `pd.DataFrame | None` for multi-record results (but consider converting to list of dicts for FunctionTool compatibility)
+- Proper error handling with try-except
+- Clear docstrings with Args and Returns sections
+
+Best Practices for FunctionTool Integration
 
 1. **Keep functions pure**: No side effects, no global state modifications
 2. **Idempotent operations**: Same input should produce same output
@@ -254,7 +266,7 @@ def get_stock_realtime_quote(symbol: str) -> dict[str, Any] | None:
 7. **Logging**: Use appropriate log levels (DEBUG, INFO, WARNING, ERROR)
 8. **Type safety**: Use type hints everywhere, enable mypy checking
 
-## Testing Requirements
+Testing Requirements
 
 **CRITICAL: Every function in `data_provider` MUST have corresponding test cases in `tests/unit/`.**
 

@@ -1,10 +1,13 @@
 ---
-applyTo: core/llm/**/*
 description: This rule is helpful for building an AI agent in the project, you should refer to this rule when you write AI agent like RAG, ReAct agents, etc.
+applyTo: "core/llm/**/*.py"
 ---
-# Python LLM Development Guide for GitHub Copilot
+# LLM and AI Agent Development Guide for GitHub Copilot
 
-This guide covers building AI agents using LlamaIndex for the FinWeave project.
+This guide covers LLM, agent, RAG, and related AI functionality for the FinWeave project.
+
+
+You are an expert in Python, building AI agents by leveraging llamaindex.
 
 ## Key Principles
 
@@ -15,7 +18,7 @@ This guide covers building AI agents using LlamaIndex for the FinWeave project.
 - Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
 - Favor named exports for routes and utility functions.
 - Use the Receive an Object, Return an Object (RORO) pattern.
-- Manage runtime within python virtual environment, this has been already included in the @venv folder.
+- Manage runtime within python virtual envrionment, this has been already included in the @venv folder.
 - Manage dependencies with uv, there is one [pyproject.toml] in the codebase.
 - Always run python command under virtual environment by activating virtual environment with `source venv/bin/activate`
 
@@ -137,10 +140,10 @@ The LLM module is organized into the following components:
 from core.llm.agent import Agent
 from core.llm.tool.date_util import get_current_date
 
-# Create agent with default LLM
+## Create agent with default LLM
 agent = Agent(tools=[get_current_date])
 
-# Run agent
+## Run agent
 response = agent.run("What is today's date?")
 ```
 
@@ -149,14 +152,14 @@ response = agent.run("What is today's date?")
 ```python
 from core.llm.chat import Chatbot
 
-# Create chatbot
+## Create chatbot
 chatbot = Chatbot(system_prompt="You are a helpful assistant.")
 
-# Stream response (async)
+## Stream response (async)
 async for token in chatbot.astream_chat("Hello!"):
     print(token, end="", flush=True)
 
-# Stream response (sync)
+## Stream response (sync)
 for token in chatbot.stream_chat("Hello!"):
     print(token, end="", flush=True)
 ```
@@ -185,7 +188,7 @@ from core.llm.embedding import create_embedding_model
 llm = LLMFactory.create()
 embedding = create_embedding_model()
 
-# Create memory with all types
+## Create memory with all types
 memory = LLMMemory.with_all_memory_types(
     llm=llm,
     embed_model=embedding,
@@ -193,7 +196,7 @@ memory = LLMMemory.with_all_memory_types(
     token_limit=3000
 )
 
-# Use with agent or chatbot
+## Use with agent or chatbot
 from core.llm.agent import Agent
 agent = Agent(llm=llm, memory=memory.get_memory())
 ```
@@ -204,10 +207,10 @@ agent = Agent(llm=llm, memory=memory.get_memory())
 from core.llm.prompt import PromptLoader
 
 prompt_loader = PromptLoader()
-# Load prompt without variables
+## Load prompt without variables
 prompt = prompt_loader.load_prompt("template.liquid")
 
-# Load prompt with variables
+## Load prompt with variables
 prompt = prompt_loader.load_prompt_with_context(
     "template.liquid",
     {"variable_name": "value"}
@@ -219,13 +222,13 @@ prompt = prompt_loader.load_prompt_with_context(
 ```python
 from core.llm.model import LLMFactory
 
-# Create with default provider (from LLM_PROVIDER env var)
+## Create with default provider (from LLM_PROVIDER env var)
 llm = LLMFactory.create()
 
-# Create with specific provider
+## Create with specific provider
 llm = LLMFactory.create(provider="azure_openai")
 
-# Get supported providers
+## Get supported providers
 providers = LLMFactory.get_supported_providers()
 ```
 

@@ -1,10 +1,13 @@
 ---
-applyTo: core/kyc/**/*
 description: This rule is helpful for building a Know-Your-Customer workflow based on LLM.
+applyTo: "core/kyc/**/*.py"
 ---
 # KYC Workflow Development Guide for GitHub Copilot
 
-This guide covers building Know-Your-Customer (KYC) workflows using llama-index's workflow framework.
+This guide covers KYC workflow and customer management for the FinWeave project.
+
+
+You are an expert in Python, building Know-Your-Customer (KYC) workflows using llama-index's workflow framework.
 
 ## What is a KYC Workflow?
 
@@ -65,13 +68,13 @@ Llama-index workflows provide a declarative way to build multi-step LLM processe
 The workflow framework may be imported from different locations depending on the version:
 
 ```python
-# Pattern 1: From llama_index.workflows (if available)
+## Pattern 1: From llama_index.workflows (if available)
 from llama_index.workflows import Workflow, step, StartEvent, StopEvent
 
-# Pattern 2: From llama_index.core.workflow
+## Pattern 2: From llama_index.core.workflow
 from llama_index.core.workflow import Workflow, step, StartEvent, StopEvent
 
-# Pattern 3: From llama_index.workflows (newer versions)
+## Pattern 3: From llama_index.workflows (newer versions)
 from llama_index.workflows import Workflow
 from llama_index.workflows.step import step
 ```
@@ -83,10 +86,10 @@ Always check which import pattern works for your installed version.
 **Note**: The import paths and exact API may differ. Verify the correct imports for your version.
 
 ```python
-# Verify correct imports for your version - examples below show common patterns
-# Option 1: from llama_index.core.workflow import ...
-# Option 2: from llama_index.workflows import ...
-# Option 3: from llama_index.workflows.workflow import ...
+## Verify correct imports for your version - examples below show common patterns
+## Option 1: from llama_index.core.workflow import ...
+## Option 2: from llama_index.workflows import ...
+## Option 3: from llama_index.workflows.workflow import ...
 
 from llama_index.core.workflow import (
     Event,
@@ -99,7 +102,7 @@ from llama_index.core.llms.function_calling import FunctionCallingLLM
 from core.llm.model import create_llm
 from pydantic import BaseModel
 
-# Define state models
+## Define state models
 class CustomerData(Event):
     customer_id: str
     name: str
@@ -117,7 +120,7 @@ class RiskAssessment(Event):
     risk_score: float
     requires_review: bool
 
-# Define workflow
+## Define workflow
 class KYCWorkflow(Workflow):
     llm: FunctionCallingLLM = create_llm()
 

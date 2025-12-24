@@ -1,6 +1,12 @@
 repos:
   - repo: local
     hooks:
+      - id: sync-rules-to-instructions
+        name: Sync Cursor rules to GitHub Copilot instructions
+        entry: ./tools/sync_rules_to_instructions
+        language: system
+        pass_filenames: false
+        files: ^\.cursor/rules/.*\.mdc$
       - id: format-all
         name: Format all files
         entry: ./tools/format
