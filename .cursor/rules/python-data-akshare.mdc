@@ -1,5 +1,5 @@
 ---
-description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
+description: This rule provides guidelines for building data providers using akshare library for LlamaIndex FunctionTool. Refer to this rule when writing code in the `data_provider/` folder.
 globs: data_provider/**/*.py
 alwaysApply: false
 ---

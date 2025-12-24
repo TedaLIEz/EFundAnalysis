@@ -1,6 +1,6 @@
 ---
-description: This rule is helpful for building project in python, you should refer to this rule when you found yourself writing python code.
-globs: api/**/*.py
+description: This rule provides guidelines for FastAPI API endpoints and extension modules. Refer to this rule when writing code in the `api/` or `extensions/` folders.
+globs: api/**/*.py,extensions/**/*.py
 alwaysApply: false
 ---
 
